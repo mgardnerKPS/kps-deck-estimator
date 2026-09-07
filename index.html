@@ -1,0 +1,1578 @@
+<title>KPS Deck Estimator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--blue:#0b5ed7;--dark:#13233c;--bg:#f4f6f9;--card:#fff;--border:#d9e0ea;--good:#1a7d3c;--bad:#c22b2b;--muted:#5c6b7f;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--dark);}
+header{background:var(--dark);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:50;}
+header h1{margin:0;font-size:1.05rem;}
+header .sub{font-size:.72rem;color:#9db3cf;margin-top:2px;}
+.steps{display:flex;background:#0e1c31;font-size:.68rem;}
+.steps div{flex:1;text-align:center;padding:7px 2px;color:#7c90ab;border-bottom:3px solid transparent;}
+.steps div.active{color:#fff;border-color:var(--blue);font-weight:600;}
+.steps div.done{color:#bcd0e8;}
+main{max-width:760px;margin:0 auto;padding:14px 12px 90px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.card h2{font-size:.95rem;margin:0 0 10px;color:var(--dark);}
+.card h3{font-size:.82rem;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+label{display:block;font-size:.76rem;color:var(--muted);margin:8px 0 3px;}
+input[type=text],input[type=number],select{width:100%;padding:9px 8px;border:1px solid var(--border);border-radius:7px;font-size:.9rem;background:#fff;}
+input:focus,select:focus{outline:2px solid var(--blue);}
+.row{display:flex;gap:8px;}
+.row>div{flex:1;min-width:0;}
+.yn{display:flex;gap:6px;}
+.yn button{flex:1;padding:8px;border:1px solid var(--border);background:#fff;border-radius:7px;font-size:.82rem;cursor:pointer;}
+.yn button.sel{background:var(--blue);color:#fff;border-color:var(--blue);}
+.btnrow{display:flex;gap:8px;margin-top:14px;}
+.btn{flex:1;padding:12px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;}
+.btn.primary{background:var(--blue);color:#fff;}
+.btn.ghost{background:#fff;border:1px solid var(--border);color:var(--dark);}
+.btn.sm{padding:7px 10px;font-size:.78rem;font-weight:500;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700;}
+.badge.pass{background:#e4f6ea;color:var(--good);}
+.badge.fail{background:#fbe7e7;color:var(--bad);}
+.badge.na{background:#eee;color:#777;}
+.check-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed #eee;font-size:.8rem;}
+.check-row:last-child{border-bottom:none;}
+.buildingTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.buildingTabs button{padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:.76rem;cursor:pointer;}
+.buildingTabs button.sel{background:var(--dark);color:#fff;}
+table.matx{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:6px;}
+table.matx th,table.matx td{padding:5px 4px;border-bottom:1px solid #eee;text-align:left;}
+table.matx th{color:var(--muted);font-weight:600;font-size:.7rem;text-transform:uppercase;}
+table.matx td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.acc{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;}
+.acc-h{padding:10px 12px;background:#fafbfd;cursor:pointer;font-weight:600;font-size:.85rem;display:flex;justify-content:space-between;}
+.acc-b{padding:0 12px 12px;display:none;}
+.acc.open .acc-b{display:block;}
+.acc.open .chev{transform:rotate(90deg);}
+.chev{transition:transform .15s;}
+.totline{display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;}
+.totline.big{font-size:1.05rem;font-weight:700;border-top:2px solid var(--dark);margin-top:6px;padding-top:8px;}
+.pill{font-size:.68rem;background:#eef2f8;color:var(--muted);padding:2px 7px;border-radius:10px;}
+.note{font-size:.72rem;color:var(--muted);margin-top:4px;}
+.hidden{display:none!important;}
+select.margin-select{max-width:120px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.od-text{font-size:.68rem;color:rgba(255,255,255,0.6);margin-top:8px;}
+.od-text strong{color:#fff;}
+.od-text.warn strong{color:#e9a24d;}
+.od-action{font-size:.68rem;color:#6fa8ff;font-weight:600;cursor:pointer;margin-top:2px;user-select:none;}
+.od-action:active{opacity:0.7;}
+#spStatus{font-size:.72rem;margin-top:8px;}
+</style>
+<header>
+  <h1>KPS Deck Estimator</h1>
+  <div class="sub">DCA6-2015 code-checked framing &amp; PO takeoff</div>
+  <div class="od-text" id="odText">Prices: <strong>built-in defaults</strong></div>
+  <div class="od-action" id="odAction" onclick="connectKPSPricing()">Connect to KPS Pricing →</div>
+</header>
+<div class="steps" id="stepNav"></div>
+<main id="app"></main>
+
+<!-- KPS App Suite shared sign-in — used to sync live pricing from the KPS Pricing SharePoint list -->
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+/* =========================================================================
+   DCA6-2015 REFERENCE TABLES (Southern Pine No. 2, 40psf live/10psf dead)
+   Transcribed from "DCA6 Ref" sheet.
+   ========================================================================= */
+
+// TABLE 2 — joist size+spacing -> {span, overhang} in feet
+const TABLE2 = {
+  '2x6':{12:{span:9+11/12, ohang:1+0/12},16:{span:9+0/12, ohang:1+1/12},24:{span:7+7/12, ohang:1+3/12}},
+  '2x8':{12:{span:13+1/12, ohang:1+10/12},16:{span:11+10/12, ohang:2+0/12},24:{span:9+8/12, ohang:2+4/12}},
+  '2x10':{12:{span:16+2/12, ohang:3+1/12},16:{span:14+0/12, ohang:3+5/12},24:{span:11+5/12, ohang:2+10/12}},
+  '2x12':{12:{span:18+0/12, ohang:4+6/12},16:{span:16+6/12, ohang:4+2/12},24:{span:13+6/12, ohang:3+4/12}},
+};
+
+// TABLE 3A — beam buildup + joist-span bracket -> allowable beam span (ft)
+// key: "<ply>-<size>" e.g. "2-2x8", bracket = joist span rounded up to even, capped 18, min 6
+const TABLE3A = {
+ '2-2x6':{6:6+8/12,8:5+8/12,10:5+1/12,12:4+7/12,14:4+3/12,16:4+0/12,18:3+9/12},
+ '2-2x8':{6:8+6/12,8:7+4/12,10:6+6/12,12:5+11/12,14:5+6/12,16:5+1/12,18:4+9/12},
+ '2-2x10':{6:10+1/12,8:8+9/12,10:7+9/12,12:7+1/12,14:6+6/12,16:6+1/12,18:5+9/12},
+ '2-2x12':{6:11+11/12,8:10+4/12,10:9+2/12,12:8+4/12,14:7+9/12,16:7+3/12,18:6+9/12},
+ '3-2x6':{6:7+11/12,8:7+2/12,10:6+5/12,12:5+10/12,14:5+5/12,16:5+0/12,18:4+9/12},
+ '3-2x8':{6:10+7/12,8:9+3/12,10:8+3/12,12:7+6/12,14:6+11/12,16:6+5/12,18:6+1/12},
+ '3-2x10':{6:12+9/12,8:11+0/12,10:9+9/12,12:8+9/12,14:8+3/12,16:7+8/12,18:7+3/12},
+ '3-2x12':{6:15+0/12,8:13+0/12,10:11+7/12,12:10+6/12,14:9+9/12,16:9+1/12,18:8+7/12},
+};
+
+// TABLE 4 — beam-span bracket + joist-span bracket -> {postHt, footingDia, footingThick}
+const TABLE4 = {
+ 6:{10:{postHt:14,dia:18,thick:7}, 14:{postHt:14,dia:21,thick:8}, 18:{postHt:14,dia:24,thick:10}},
+ 8:{10:{postHt:14,dia:20,thick:8}, 14:{postHt:14,dia:24,thick:10},18:{postHt:14,dia:27,thick:11}},
+ 10:{10:{postHt:14,dia:23,thick:9},14:{postHt:14,dia:27,thick:11},18:{postHt:12,dia:31,thick:13}},
+ 12:{10:{postHt:14,dia:25,thick:10},14:{postHt:13,dia:30,thick:13},18:{postHt:11,dia:34,thick:15}},
+ 14:{10:{postHt:14,dia:27,thick:11},14:{postHt:11,dia:32,thick:14},18:{postHt:9,dia:37,thick:16}},
+ 16:{10:{postHt:13,dia:29,thick:12},14:{postHt:10,dia:35,thick:15},18:{postHt:7,dia:40,thick:18}},
+ 18:{10:{postHt:12,dia:31,thick:13},14:{postHt:9,dia:37,thick:16},18:{postHt:5,dia:42,thick:19}},
+};
+
+// TABLE 5 — joist span bracket (<=) -> ledger fastener spacing (in o.c.)
+const TABLE5 = [{max:6,sp:30},{max:8,sp:23},{max:10,sp:18},{max:12,sp:15},{max:14,sp:13},{max:16,sp:11},{max:18,sp:10}];
+
+function bracket(val, cap){ // MIN(cap, CEILING(MAX(val,6),2))
+  const v = Math.max(val,6);
+  const ceil2 = Math.ceil(v/2)*2;
+  return Math.min(cap, ceil2);
+}
+function roundup(v,d){ const f=Math.pow(10,d||0); return Math.ceil(v*f - 1e-9)/f; }
+function xround(v,d){ const f=Math.pow(10,d||0); return Math.round(v*f)/f; } // Excel ROUND (not ROUNDUP)
+
+function table5Lookup(jb){
+  for(const row of TABLE5){ if(jb<=row.max) return row.sp; }
+  return 0;
+}
+
+/* =========================================================================
+   CALC ENGINE — mirrors the "Calc" sheet, one building/deck at a time.
+   Input field names mirror the spreadsheet's blue input cells.
+   ========================================================================= */
+function calcBuilding(inp){
+  const c = {}; // mirrors "C" column cells, named by spreadsheet row purpose
+  c.ledgerLen = num(inp.ledgerLen);          // C6
+  c.deckDepth = num(inp.deckDepth);          // C7
+  c.overhang  = num(inp.overhang);           // C8
+  c.ply       = num(inp.ply)||1;             // C9  perimeter ply (band joist plies), 1 or 2
+  c.joistSpacing = num(inp.joistSpacing)||12;// C10
+  c.joistSize = inp.joistSize||'2x8';        // C11
+  c.dropBeam  = inp.dropBeam==='Y';          // C12
+  c.beamPly   = num(inp.beamPly)||2;         // C13
+  c.beamSize  = inp.beamSize||inp.joistSize||'2x8'; // C14
+  c.postHeight= num(inp.postHeight);         // C15
+  c.numDecksAtUnit = num(inp.numDecksAtUnit)||1; // C16
+  c.numSteps  = num(inp.numSteps);           // C17
+  c.stairWidthIn = num(inp.stairWidthIn);    // C18
+  c.stairsAtCorner = inp.stairsAtCorner==='Y'; // C19
+  c.riserHeight = num(inp.riserHeight)||7.5; // C20
+  c.treadDepth  = num(inp.treadDepth)||11;   // C21
+  c.extraStringersCorner = num(inp.extraStringersCorner)||0; // C22
+  c.pictureFramed = inp.pictureFramed==='Y'; // C23
+  c.pvcCladding = inp.pvcCladding==='Y';      // C24
+  c.concreteLanding = inp.concreteLanding==='Y'; // C25
+
+  const hasLedger = c.ledgerLen>0;
+  const hasDepth  = c.deckDepth>0;
+  const hasStairs = c.numSteps>0;
+
+  // ---- CODE CHECK ----
+  const t2 = (TABLE2[c.joistSize]||{})[c.joistSpacing] || {span:0,ohang:0};
+  c.allowJoistSpan = t2.span; // C27
+  c.joistSpanL = hasDepth ? c.deckDepth - c.overhang : 0; // C28
+  c.joistSpanCheck = !hasDepth ? '' : (c.joistSpanL<=c.allowJoistSpan?'PASS':'FAIL'); // C29
+  c.allowOverhang = t2.ohang; // C30
+  c.maxCantilever = Math.min(c.allowOverhang, c.joistSpanL/4); // C31
+  c.overhangCheck = c.overhang==='' ? '' : (c.overhang>c.maxCantilever ? 'FAIL - overhang too long' : (c.joistSpanL>c.allowJoistSpan?'FAIL - beam too far out':'PASS')); // C32
+  c.beamBuildup = c.dropBeam ? `${c.beamPly}-${c.beamSize}` : 'none'; // C33
+  c.joistBracketT3A = c.dropBeam ? Math.min(18, bracket(c.joistSpanL,18)) : ''; // C34
+  c.allowBeamSpan = c.dropBeam ? ((TABLE3A[c.beamBuildup]||{})[c.joistBracketT3A]||0) : 0; // C35
+  c.beamLength = c.dropBeam ? c.ledgerLen : 0; // C36
+  c.postsRequired = (!c.dropBeam || c.allowBeamSpan===0) ? 0 : (roundup(c.beamLength/c.allowBeamSpan,0)+1); // C37
+  c.postSpacing = c.postsRequired<2 ? 0 : c.beamLength/(c.postsRequired-1); // C38
+  c.beamSpanCheck = !c.dropBeam ? 'n/a' : (c.postSpacing<=c.allowBeamSpan?'PASS':'FAIL'); // C39
+  c.beamBracketT4 = c.dropBeam ? bracket(c.postSpacing,18) : ''; // C40
+  c.joistBracketT4 = c.dropBeam ? (c.joistSpanL<=10?10:(c.joistSpanL<=14?14:18)) : ''; // C41
+  const t4 = c.dropBeam ? ((TABLE4[c.beamBracketT4]||{})[c.joistBracketT4]) : null;
+  c.maxPostHt = c.dropBeam ? (t4?t4.postHt:0) : 0; // C42
+  c.postHtCheck = (!c.dropBeam || c.postHeight==='') ? 'n/a' : (c.postHeight<=c.maxPostHt?'PASS':'FAIL'); // C43
+  c.footingDia = c.dropBeam ? (t4?t4.dia:0) : 0; // C44
+  c.footingThick = c.dropBeam ? (t4?t4.thick:0) : 0; // C45
+  c.concretePerFooting = c.footingDia===0?0: Math.PI*Math.pow(c.footingDia/24,2)*(c.footingThick/12); // C46
+  const ledgerBracket = Math.min(18, bracket(c.joistSpanL,18));
+  c.ledgerFastenerSpacing = table5Lookup(ledgerBracket); // C47
+  c.ledgerFasteners = (c.ledgerFastenerSpacing===0||!hasLedger)?0: roundup(c.ledgerLen*12/c.ledgerFastenerSpacing,0)+1; // C48
+
+  // ---- STAIRS ----
+  c.totalRise = hasStairs ? c.numSteps*c.riserHeight : 0; // C51
+  c.riserCheck = !hasStairs?'':(c.riserHeight<=7.75?'PASS':'FAIL'); // C52
+  c.treads = hasStairs ? Math.max(c.numSteps-1,0) : 0; // C53
+  c.treadCheck = !hasStairs?'':(c.treadDepth>=10?'PASS':'FAIL'); // C54
+  c.totalRun = c.treads*c.treadDepth; // C55
+  c.stringerSlopeLen = hasStairs ? Math.sqrt(c.totalRise**2 + c.totalRun**2)/12 : 0; // C56
+  c.stringersAt12 = (!hasStairs || !c.stairWidthIn) ? 0 : roundup(c.stairWidthIn/12,0)+1; // C57
+  c.extraStringers = (c.stairsAtCorner && c.stringersAt12>0) ? c.extraStringersCorner : 0; // C58
+  c.stringersReq = c.stringersAt12 + c.extraStringers; // C59
+  c.stringerWaste = 0.2; // C61
+  c.stringerPieceLen = c.stringerSlopeLen*(1+c.stringerWaste); // C62
+  c.stringerLF12 = (c.stringerPieceLen===0||c.stringerPieceLen>12)?9999: roundup(c.stringersReq/Math.floor(12/c.stringerPieceLen),0)*12; // C63
+  c.stringerLF16 = (c.stringerPieceLen===0||c.stringerPieceLen>16)?9999: roundup(c.stringersReq/Math.floor(16/c.stringerPieceLen),0)*16; // C64
+  c.stringerBestLen = Math.min(c.stringerLF12,c.stringerLF16)>=9999?0:(c.stringerLF12<=c.stringerLF16?12:16); // C65
+  c.stringerBoards = c.stringerBestLen===0?0: roundup(c.stringersReq/Math.floor(c.stringerBestLen/c.stringerPieceLen),0); // C66
+  c.stringerFitCheck = !hasStairs?'':(c.stringerSlopeLen>16?'FAIL - needs landing':'PASS'); // C67
+  c.stairHangers = c.stringersReq; // C68
+  c.midPostMaxSpan = 6; // C70
+  c.midPostLen = 4; // C71
+  c.midPostsReq = (c.stringersReq>0 && c.stringerSlopeLen>c.midPostMaxSpan) ? c.stringersReq : 0; // C72
+  c.midPostBoards = (c.midPostsReq===0||c.midPostLen===0)?0: roundup(c.midPostsReq/Math.floor(12/c.midPostLen),0); // C73
+  c.concretePerStairFooting = c.midPostsReq===0?0: Math.PI*Math.pow(12/24,2)*(6/12); // C74
+
+  // ---- 6x6 POSTS ----
+  c.beamPosts = c.postsRequired; // C77
+  c.cornerLandingPost = (c.stairsAtCorner && hasStairs) ? 1 : 0; // C78
+  c.total6x6Posts = c.beamPosts + c.cornerLandingPost; // C79
+  c.postPieceLen = c.postHeight||0; // C80
+  const postStock=[8,10,12,16].map(L=>({L, lf:(c.postPieceLen===0||c.postPieceLen>L)?9999:roundup(c.total6x6Posts/Math.floor(L/c.postPieceLen),0)*L}));
+  c.postLF8=postStock[0].lf; c.postLF10=postStock[1].lf; c.postLF12=postStock[2].lf; c.postLF16=postStock[3].lf; // C81-84
+  const minPostLF = Math.min(c.postLF8,c.postLF10,c.postLF12,c.postLF16);
+  c.postBestLen = minPostLF>=9999?0:(postStock.find(s=>s.lf===minPostLF).L); // C85
+  c.postBoards = c.postBestLen===0?0: roundup(c.total6x6Posts/Math.floor(c.postBestLen/c.postPieceLen),0); // C86
+
+  // ---- CUT LIST GROUP 1 (ledger + blocking + outer band + picture-frame nailer) ----
+  c.g1PieceLen = c.ledgerLen; // C90
+  c.g1Pieces = !hasLedger?0: (1+1+c.ply+(c.pictureFramed?2:0)); // C91
+  const g1 = stockPick(c.g1Pieces, c.g1PieceLen, [8,12,16]);
+  c.g1LF8=g1.lf[0]; c.g1LF12=g1.lf[1]; c.g1LF16=g1.lf[2]; c.g1BestLen=g1.bestLen; c.g1Boards=g1.boards; // C92-96
+
+  // ---- GROUP 2 (side bands + field joists + picture-frame nailer) ----
+  c.g2PieceLen = hasDepth ? c.deckDepth : 0; // C98
+  c.fieldJoists = (!hasLedger||!c.joistSpacing) ? 0 : roundup(c.ledgerLen*12/c.joistSpacing,0)-1; // C99
+  c.g2Pieces = c.g2PieceLen===0?0: (2*c.ply + c.fieldJoists + (c.pictureFramed?2:0)); // C100
+  const g2 = stockPick(c.g2Pieces, c.g2PieceLen, [8,12,16]);
+  c.g2LF8=g2.lf[0]; c.g2LF12=g2.lf[1]; c.g2LF16=g2.lf[2]; c.g2BestLen=g2.bestLen; c.g2Boards=g2.boards; // C101-105
+
+  // ---- GROUP 3 (drop-beam plies) ----
+  c.g3PieceLen = c.dropBeam ? c.ledgerLen : 0; // C107
+  c.g3Pieces = c.dropBeam ? c.beamPly : 0; // C108
+  const g3 = stockPick(c.g3Pieces, c.g3PieceLen, [8,12,16]);
+  c.g3LF8=g3.lf[0]; c.g3LF12=g3.lf[1]; c.g3LF16=g3.lf[2]; c.g3BestLen=g3.bestLen; c.g3Boards=g3.boards; // C109-113
+
+  // ---- FRAMING BOARD OUTPUT (by size x length) ----
+  const framingSizes = ['2x6','2x8','2x10','2x12'];
+  c.framingBoards = {}; // e.g. framingBoards['2x8'][8] = qty
+  for(const sz of framingSizes){
+    c.framingBoards[sz] = {8:0,12:0,16:0};
+    for(const len of [8,12,16]){
+      let qty=0;
+      if(sz===c.joistSize){
+        if(c.g1BestLen===len) qty+=c.g1Boards;
+        if(c.g2BestLen===len) qty+=c.g2Boards;
+      }
+      if(c.dropBeam && sz===c.beamSize){
+        if(c.g3BestLen===len) qty+=c.g3Boards;
+      }
+      c.framingBoards[sz][len]=qty;
+    }
+  }
+  // 2x12 also carries stringer stock (per spreadsheet note "incl. stringers")
+  c.framingBoards['2x12'][12] += (c.stringerBestLen===12?c.stringerBoards:0);
+  c.framingBoards['2x12'][16] += (c.stringerBestLen===16?c.stringerBoards:0);
+
+  c.hangersFieldJoist = c.joistSize==='2x8'? c.fieldJoists*2 : (c.joistSize==='2x10'? c.fieldJoists*2 : 0); // C129/C131 (only 2x8/2x10 stocked)
+  c.hangersDoubleBand = (c.ply>1) ? 4 : 0; // C130/C132 (2x2 at each end)
+  c.hurricaneTies = c.dropBeam ? (c.fieldJoists + 2*c.ply) : 0; // C134
+  c.postBase6x6 = c.beamPosts; // C135
+  c.postCap6x6 = c.beamPosts; // C136
+  c.readyBase = c.total6x6Posts; // C137
+  c.midPost4x4Boards = c.midPostBoards; // C138
+  c.midPostBase4x4 = c.midPostsReq; // C139
+  c.midPostCap4x4 = c.midPostsReq; // C140
+  c.midPostCapRDI = c.midPostsReq; // C141
+  c.midPostSkirtRDI = c.midPostsReq; // C142
+
+  // ---- CONSUMABLES ----
+  c.totalFramingLF = c.g1Pieces*c.g1PieceLen + c.g2Pieces*c.g2PieceLen + c.g3Pieces*c.g3PieceLen; // C151
+  c.joistTapeRolls = roundup(c.totalFramingLF/75,0); // C152
+  c.vycorRolls = (!hasLedger)?0: roundup(c.ledgerLen/50,0); // C153
+  c.deckLedgerFlash = (!hasLedger)?0: roundup(c.ledgerLen/10,0); // C154
+  c.tensionTieKits = hasLedger ? Math.max(0.5, roundup(c.ledgerLen/4,0)*0.25) : 0; // C239 (computed early for concrete dependency order)
+  c.dtt2z = hasLedger ? 2 : 0; // C156
+  c.ledgerLokBoxes = xround(c.ledgerFasteners/50,1); // C158
+
+  // ---- DECKING ----
+  c.boardFaceW = 5.5; c.boardGap = 0.125; c.coverage = c.boardFaceW+c.boardGap; // C161-163
+  c.borderRows = 1; // C164
+  c.boardWaste = 0.1; // C166
+  c.fieldDepthToCover = hasDepth ? (c.deckDepth*12 - (c.pictureFramed? 2*c.borderRows*c.coverage:0)) : 0; // C168
+  c.fieldRows = c.coverage===0?0: roundup(c.fieldDepthToCover/c.coverage,0); // C169
+  c.fieldRunLen = hasLedger ? (c.ledgerLen - (c.pictureFramed? 2*c.borderRows*c.coverage/12:0)) : 0; // C170
+  const fd = stockPick3(c.fieldRows, c.fieldRunLen, [12,16,20]);
+  c.fieldLF12=fd.lf[0]; c.fieldLF16=fd.lf[1]; c.fieldLF20=fd.lf[2]; c.fieldBestLen=fd.bestLen;
+  c.fieldBoards = fd.bestLen===0?0: roundup(roundup(c.fieldRows/Math.floor(fd.bestLen/c.fieldRunLen),0)*(1+c.boardWaste),0); // C175
+
+  // stair tread decking
+  c.treadRunLen = hasStairs ? c.stairWidthIn/12 : 0; // C178
+  c.rowsPerTread = (c.coverage===0||!hasStairs)?0: roundup(c.treadDepth/c.coverage,0); // C179
+  c.totalTreadRuns = c.treads*c.rowsPerTread; // C180
+  const td = stockPick3(c.totalTreadRuns, c.treadRunLen, [12,16,20]);
+  c.treadLF12=td.lf[0]; c.treadLF16=td.lf[1]; c.treadLF20=td.lf[2]; c.treadBestLen=td.bestLen;
+  c.treadBoards = td.bestLen===0?0: roundup(roundup(c.totalTreadRuns/Math.floor(td.bestLen/c.treadRunLen),0)*(1+c.boardWaste),0); // C185
+
+  // picture-frame border
+  c.pfRunsLedger = c.pictureFramed? 2*c.borderRows:0; // C188
+  c.pfLedgerStockLen = c.pfRunsLedger===0?0: (c.ledgerLen<=12?12:(c.ledgerLen<=16?16:20)); // C190
+  c.pfBoardsLedger = (c.pfRunsLedger===0||!hasLedger)?0: roundup(c.pfRunsLedger/Math.max(Math.floor(c.pfLedgerStockLen/c.ledgerLen,1),1),0); // C189
+  c.pfRunsDepth = c.pictureFramed? 2*c.borderRows:0; // C191
+  c.pfDepthStockLen = c.pfRunsDepth===0?0: (c.deckDepth<=12?12:(c.deckDepth<=16?16:20)); // C193
+  c.pfBoardsDepth = (c.pfRunsDepth===0||!hasDepth)?0: roundup(c.pfRunsDepth/Math.max(Math.floor(c.pfDepthStockLen/c.deckDepth,1),1),0); // C192
+
+  // decking board output by length, SE (perimeter/stairs) vs GV (field, picture-framed only)
+  c.deckSE = {12:0,16:0,20:0}; c.deckGV = {12:0,16:0,20:0};
+  for(const len of [12,16,20]){
+    let se=0;
+    if(!c.pictureFramed && c.fieldBestLen===len) se+=c.fieldBoards;
+    if(c.treadBestLen===len) se+=c.treadBoards;
+    if(c.pfLedgerStockLen===len) se+=c.pfBoardsLedger;
+    if(c.pfDepthStockLen===len) se+=c.pfBoardsDepth;
+    c.deckSE[len]=se;
+    c.deckGV[len] = (c.pictureFramed && c.fieldBestLen===len) ? c.fieldBoards : 0;
+  }
+
+  // decking fasteners
+  c.seArea = (!c.pictureFramed? c.fieldRows*c.coverage/12*c.fieldRunLen:0) + c.totalTreadRuns*c.coverage/12*c.treadRunLen + (c.pfRunsLedger*c.ledgerLen + c.pfRunsDepth*c.deckDepth)*c.coverage/12; // C205
+  c.gvArea = c.pictureFramed ? c.fieldRows*c.coverage/12*c.fieldRunLen : 0; // C206
+  c.screwsWithPlugsBoxes = xround(c.seArea/100,1); // C207
+  c.concealClipsBoxes = xround(c.gvArea/100,1); // C208
+
+  // ---- PVC PERIMETER CLADDING ----
+  c.pvcSize = !c.pvcCladding?'none': (c.joistSize==='2x6'?'1x8':(c.joistSize==='2x8'?'1x10':(c.joistSize==='2x10'?'1x12':'not stocked'))); // C211
+  c.pvcStockLen=18; // C212
+  c.pvcSideRuns = c.pvcCladding?2:0; // C213
+  c.pvcSideBoards = (c.pvcSideRuns===0||!hasDepth)?0: roundup(c.pvcSideRuns/Math.max(Math.floor(c.pvcStockLen/c.deckDepth,1),1),0); // C214
+  c.pvcRimRuns = c.pvcCladding?1:0; // C215
+  c.pvcRimBoards = (c.pvcRimRuns===0||!hasLedger)?0: roundup(c.pvcRimRuns/Math.max(Math.floor(c.pvcStockLen/c.ledgerLen,1),1),0); // C216
+  c.pvcPerimBoards = roundup((c.pvcSideBoards+c.pvcRimBoards)*(1+c.boardWaste),0); // C217
+  c.riserPieces = hasStairs? c.numSteps:0; // C225
+  c.riserRunLen = hasStairs? c.stairWidthIn/12:0; // C226
+  c.pvcRiserBoards = (!c.pvcCladding||c.riserPieces===0||c.riserRunLen===0)?0: roundup(roundup(c.riserPieces/Math.max(Math.floor(c.pvcStockLen/c.riserRunLen,1),1),0)*(1+c.boardWaste),0); // C227
+  c.exposedStringerFaces = 2; // C229
+  c.pvcStringerBoards = (!c.pvcCladding||!hasStairs||c.stringerSlopeLen===0)?0: roundup(roundup(c.exposedStringerFaces/Math.max(Math.floor(c.pvcStockLen/c.stringerSlopeLen,1),1),0)*(1+c.boardWaste),0); // C230
+  c.pvcTotalLF = !c.pvcCladding?0: (c.pvcSideRuns*c.deckDepth + c.pvcRimRuns*c.ledgerLen + c.riserPieces*c.riserRunLen + c.exposedStringerFaces*c.stringerSlopeLen); // C233
+  c.cortexBoxes = roundup(c.pvcTotalLF/100,1); // C235
+  c.ptRiserBoards = (c.pvcCladding||c.riserPieces===0||c.riserRunLen===0)?0: roundup(roundup(c.riserPieces/Math.max(Math.floor(12/c.riserRunLen,1),1),0)*(1+c.boardWaste),0); // C249 (PT risers when no PVC cladding)
+
+  // ---- OTHER HARDWARE ----
+  c.ledger4ftInc = hasLedger? roundup(c.ledgerLen/4,0):0; // C238
+  c.tensionTieKits = hasLedger? Math.max(0.5, c.ledger4ftInc*0.25):0; // C239 (final)
+  c.totalFootingsAll = c.total6x6Posts + c.midPostsReq; // C240
+  c.wedgeAll = c.totalFootingsAll; // C241
+  c.copperFlashingLF = hasLedger ? c.ledgerLen*1.2 : 0; // C245
+  c.copperRolls = xround(c.copperFlashingLF/20,1); // C246
+
+  // ---- CONCRETE ----
+  c.pierDia=12; c.pierDepth=48; // C252/253
+  c.concretePerBeamPier = Math.PI*Math.pow(12/24,2)*(48/12); // C254
+  c.concretePerOther6x6Footing = c.concretePerFooting; // C255
+  c.concretePer4x4StairFooting = c.concretePerStairFooting; // C256
+  c.landingWidth = hasStairs? c.stairWidthIn+12:0; // C261
+  c.landingProjection = 2.5; c.landingThickness = 8; // C262/263
+  c.concreteLandingPad = c.concreteLanding? (c.landingWidth/12)*c.landingProjection*(c.landingThickness/12) : 0; // C264
+  c.totalConcrete = c.beamPosts*c.concretePerBeamPier + c.cornerLandingPost*c.concretePerOther6x6Footing + c.midPostsReq*c.concretePer4x4StairFooting + c.concreteLandingPad; // C257
+  c.bearingCheck = (c.footingDia===0||c.pierDia===0)?'n/a':(c.pierDia>=c.footingDia?'PASS':'REVIEW - pier narrower than Table 4'); // C258
+  c.quikreteBags = roundup(c.totalConcrete/0.6,0); // C155
+
+  c.checks = [
+    {label:'Joist span', value:c.joistSpanCheck, detail:`${round1(c.joistSpanL)} ft actual vs ${round1(c.allowJoistSpan)} ft allowed`},
+    {label:'Overhang', value:c.overhangCheck, detail:`${round1(c.overhang)} ft actual vs ${round1(c.maxCantilever)} ft max`},
+    {label:'Beam span', value:c.beamSpanCheck, detail: c.dropBeam? `${round1(c.postSpacing)} ft o.c. vs ${round1(c.allowBeamSpan)} ft allowed`:'no drop beam'},
+    {label:'Post height', value:c.postHtCheck, detail: c.dropBeam? `${round1(c.postHeight)} ft actual vs ${round1(c.maxPostHt)} ft max`:'no drop beam'},
+    {label:'Riser height (IRC max 7.75")', value:c.riserCheck, detail:`${c.riserHeight}"`},
+    {label:'Tread depth (IRC min 10")', value:c.treadCheck, detail:`${c.treadDepth}"`},
+    {label:'Stringer stock length', value:c.stringerFitCheck, detail:`${round1(c.stringerSlopeLen)} ft slope length`},
+    {label:'Footing bearing vs Table 4', value:c.bearingCheck, detail: c.dropBeam? `${c.pierDia}in pier vs ${c.footingDia}in required`:'n/a'},
+  ];
+  return c;
+}
+
+function num(v){ if(v===''||v===null||v===undefined) return ''; const n=parseFloat(v); return isNaN(n)?0:n; }
+function round1(v){ return typeof v==='number' ? Math.round(v*10)/10 : v; }
+function stockPick(pieces, pieceLen, lens){
+  const lf = lens.map(L => (pieceLen===0||pieceLen>L)?9999: roundup(pieces/Math.floor(L/pieceLen),0)*L);
+  const minlf = Math.min(...lf);
+  const bestLen = minlf>=9999?0: lens[lf.indexOf(minlf)];
+  const boards = bestLen===0?0: roundup(pieces/Math.floor(bestLen/pieceLen),0);
+  return {lf, bestLen, boards};
+}
+function stockPick3(pieces, pieceLen, lens){ return stockPick(pieces,pieceLen,lens); }
+
+/* =========================================================================
+   PRICING CATALOG — hardcoded from "Unit 5 M" / "5L" / "Totals PO Base".
+   Standalone for now; can be swapped for a live SharePoint pull later,
+   same pattern as the Roofing Estimator's Estimator-Pricing.xlsx sync.
+   ========================================================================= */
+const PRICE = {
+  framingPT: { // $/board, by size then length
+    '2x6':{8:9.5,12:12.99,16:16.5},
+    '2x8':{8:13.68,12:19.78,16:28.00},
+    '2x10':{8:19.00,12:30.00,16:37.00},
+    '2x12':{8:24.50,12:38.00,16:47.48},
+  },
+  post4x4_12: 23.38,
+  post6x6PerLF: 4.8475, // scaled off the $38.78 / 8' rate in the file
+  hardware: {
+    hanger2x8: 2.83, doubleHanger2x8: 7.78,
+    hanger2x10: 4.03, doubleHanger2x10: 28.67,
+    hurricaneTie: 0.98, stairHanger: 5.13,
+    postBase6x6: 28.00, postCap6x6: 37.48,
+    postBase4x4: 10.93, postCap4x4: 9.11,
+    readyBase: 44.25,
+    tensionTieKit: 48.48, dtt2z: 11.40,
+    ledgerLokBox: 26.98, // 12-pack, 3-5/8"
+    wedgeAll10pk: 19.98,
+    miscFasteners: 75, // nails/misc small hardware allowance
+  },
+  consumables: {
+    joistTapeRoll: 24.98, vycorRoll: 102.06, deckLedgerFlash: 8.83,
+    copperRoll: 66.89, quikreteBag: 6.47,
+  },
+  pvc: {
+    '1x8x18': 70.15, '1x10x18': 89.87, '1x12x18': 109.38,
+    cortexBox: 140.59, ptRiser1x8x12: 17.99,
+  },
+  decking: { // {SE:{12,16,20}, GV:{12,16,20}, screwBox, clipBox}
+    'PT 5/4x6':      { SE:{12:12.66,16:16.99,20:0},    GV:{12:12.66,16:16.99,20:0},   screwBox:74.99, clipBox:0 },
+    'Azek Vintage Mahogany': { SE:{12:61.53,16:82.04,20:176.37}, GV:{12:61.53,16:82.04,20:176.37}, screwBox:161.37, clipBox:235.00 },
+    'Trex Select':   { SE:{12:64.05,16:85.40,20:121.87}, GV:{12:64.05,16:85.44,20:106.74}, screwBox:161.37, clipBox:133.00 },
+    'TimberTech Reserve': { SE:{12:80.78,16:107.71,20:134.64}, GV:{12:80.78,16:107.71,20:134.64}, screwBox:161.37, clipBox:133.00 },
+    'TimberTech Pro Legacy': { SE:{12:97.12,16:129.49,20:161.86}, GV:{12:97.12,16:129.49,20:161.86}, screwBox:161.37, clipBox:133.00 },
+    'TimberTech Harvest Slate Grey': { SE:{12:61.53,16:82.04,20:102.56}, GV:{12:61.53,16:82.04,20:102.56}, screwBox:161.37, clipBox:133.00 },
+  },
+  railing: {
+    'TimberTech Classic Universal (White)': { panel:188.07, sleeve39:73.73, sleeve45:96.83, postCap:24.14, postSkirt:26.95 },
+    'TimberTech Impression (Black)':        { panel:190.00, sleeve39:55.00, sleeve45:65.00, postCap:43.00, postSkirt:26.95 },
+    'RDI Bella Premiere':                   { panel:118.00, sleeve39:17.00, sleeve45:21.00, postCap:3.61, postSkirt:6.29 },
+    'PT Wood Rail':                          { builtToLength:true }, // built from linear footage, not panels — see ptRail below
+  },
+  ptRail: {
+    balusterEa: 3.22,       // PT Baluster 36"
+    balustersPerFt: 2.35,
+    drinkRailBoardPrice: 78.88, // PT 5/4" decking drink rail, 12' board
+    drinkRailBoardLen: 12,
+  },
+  labor: { carpentryPerSF:38, stairCarpentryPerSF:38, footingEa:300, landingEa:300 },
+  salesTaxRate: 0.0625, // MA
+  gcDefaults: { dumpster:500, toilet:200, permit:0, management:0 },
+};
+// Frozen snapshot of the built-in prices above, taken before anything can sync
+// over them — the source of truth to merge fetched rows onto, and what PRICE
+// falls back to for any item a live sync doesn't (yet) cover.
+const DEFAULT_PRICE = JSON.parse(JSON.stringify(PRICE));
+
+function pushLine(arr,label,qty,unit,rate,taxable){
+  if(!qty) return;
+  arr.push({label, qty, unit, rate, ext:qty*rate, taxable:!!taxable});
+}
+
+// Builds the full material line-item list + labor for ONE building/deck.
+// Builds the material line items contributed by ONE framing zone.
+// (An odd-shaped deck is modeled as several rectangular zones; each is
+// DCA6-checked independently, then all zones' materials + labor are
+// merged into one deck-level PO/summary by materialsForBuilding below.)
+function materialLinesForZone(calc, opts){
+  opts = opts||{};
+  const deckingChoice = opts.deckingBrand || 'PT 5/4x6';
+  const dk = PRICE.decking[deckingChoice];
+  const lines = []; // {label, qty, unit, rate, ext, taxable}
+
+  // Framing lumber
+  for(const sz of Object.keys(calc.framingBoards)){
+    for(const len of [8,12,16]){
+      const qty = calc.framingBoards[sz][len];
+      if(qty>0) pushLine(lines, `PT ${sz}x${len}`, qty, 'ea', PRICE.framingPT[sz][len], true);
+    }
+  }
+  pushLine(lines, 'PT 4x4x12 (stair mid-posts)', calc.midPost4x4Boards, 'ea', PRICE.post4x4_12, true);
+  if(calc.postBestLen) pushLine(lines, `PT 6x6x${calc.postBestLen} (posts)`, calc.postBoards, 'ea', xround(PRICE.post6x6PerLF*calc.postBestLen,2), true);
+
+  // Hardware / hangers / connectors
+  pushLine(lines, '2x8 joist hanger', calc.joistSize==='2x8'?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x8, true);
+  pushLine(lines, '2x8 double hanger (concealed)', calc.joistSize==='2x8'?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x8, true);
+  pushLine(lines, '2x10 joist hanger', calc.joistSize==='2x10'?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x10, true);
+  pushLine(lines, '2x10 double hanger (concealed)', calc.joistSize==='2x10'?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x10, true);
+  pushLine(lines, 'Hurricane tie', calc.hurricaneTies, 'ea', PRICE.hardware.hurricaneTie, true);
+  pushLine(lines, 'Stair hanger', calc.stairHangers, 'ea', PRICE.hardware.stairHanger, true);
+  pushLine(lines, '6x6 post base', calc.postBase6x6, 'ea', PRICE.hardware.postBase6x6, true);
+  pushLine(lines, '6x6 post cap', calc.postCap6x6, 'ea', PRICE.hardware.postCap6x6, true);
+  pushLine(lines, '4x4 post base (stair mid-post)', calc.midPostBase4x4, 'ea', PRICE.hardware.postBase4x4, true);
+  pushLine(lines, '4x4 post cap (stair mid-post)', calc.midPostCap4x4, 'ea', PRICE.hardware.postCap4x4, true);
+  pushLine(lines, 'Ready-base footing form', calc.readyBase, 'ea', PRICE.hardware.readyBase, true);
+  pushLine(lines, 'Tension tie kit', calc.tensionTieKits, 'kit', PRICE.hardware.tensionTieKit, true);
+  pushLine(lines, 'DTT2z lateral tie', calc.dtt2z, 'ea', PRICE.hardware.dtt2z, true);
+  pushLine(lines, "LedgerLok box (3-5/8\", 12pk)", Math.max(calc.ledgerLokBoxes>0?1:0, Math.ceil(calc.ledgerLokBoxes)), 'box', PRICE.hardware.ledgerLokBox, true);
+  pushLine(lines, 'Wedge-All 1/2"x5" (10pk)', roundup(calc.wedgeAll/10,0), 'pk', PRICE.hardware.wedgeAll10pk, true);
+  pushLine(lines, 'Misc fasteners allowance', calc.ledgerLen?1:0, 'job', PRICE.hardware.miscFasteners, true);
+
+  // Consumables
+  pushLine(lines, 'Joist tape', calc.joistTapeRolls, 'roll', PRICE.consumables.joistTapeRoll, true);
+  pushLine(lines, 'Vycor Plus (ledger waterproofing)', calc.vycorRolls, 'roll', PRICE.consumables.vycorRoll, true);
+  pushLine(lines, 'Deck ledger flashing', calc.deckLedgerFlash, 'ea', PRICE.consumables.deckLedgerFlash, true);
+  pushLine(lines, '12" copper flashing roll', calc.copperRolls, 'roll', PRICE.consumables.copperRoll, true);
+  pushLine(lines, 'Quikrete 80# bag', calc.quikreteBags, 'bag', PRICE.consumables.quikreteBag, true);
+
+  // PVC perimeter cladding / stair risers
+  if(calc.pvcCladding){
+    pushLine(lines, `PVC ${calc.pvcSize}x18 perimeter cladding`, calc.pvcPerimBoards, 'ea', PRICE.pvc[`${calc.pvcSize}x18`]||0, true);
+    pushLine(lines, 'PVC 1x8x18 stair risers', calc.pvcRiserBoards, 'ea', PRICE.pvc['1x8x18'], true);
+    pushLine(lines, 'PVC 1x12x18 stringer cladding', calc.pvcStringerBoards, 'ea', PRICE.pvc['1x12x18'], true);
+    pushLine(lines, 'Cortex 2" screw & plug box', calc.cortexBoxes, 'box', PRICE.pvc.cortexBox, true);
+  } else {
+    pushLine(lines, 'PT 1x8x12 stair risers', calc.ptRiserBoards, 'ea', PRICE.pvc.ptRiser1x8x12, true);
+  }
+
+  // Decking
+  for(const len of [12,16,20]){
+    pushLine(lines, `${deckingChoice} ${len}' SE decking`, calc.deckSE[len], 'ea', dk.SE[len]||0, true);
+    pushLine(lines, `${deckingChoice} ${len}' GV decking`, calc.deckGV[len], 'ea', dk.GV[len]||0, true);
+  }
+  pushLine(lines, 'Decking screws w/ plugs (SE, box)', calc.screwsWithPlugsBoxes, 'box', dk.screwBox, true);
+  if(dk.clipBox) pushLine(lines, 'Concealed deck clips (GV, box)', calc.concealClipsBoxes, 'box', dk.clipBox, true);
+
+  const carpentrySF = (num(calc.ledgerLen)||0) * (num(calc.deckDepth)||0);
+  const stairSF = (num(calc.numSteps)||0) * ((num(calc.stairWidthIn)||0)/12);
+  return { lines, carpentrySF, stairSF, footingsCount: calc.totalFootingsAll, landingCount: calc.concreteLanding?1:0, total6x6Posts: calc.total6x6Posts };
+}
+
+// Merges every zone's materials/labor into one deck-level PO + adds the
+// deck's shared railing selection once (railing isn't a per-zone quantity).
+function materialsForBuilding(zoneCalcs, opts){
+  opts = opts||{};
+  const railingChoice = opts.railingSystem || 'none';
+  const rl = PRICE.railing[railingChoice];
+
+  const rawLines = [];
+  let carpentrySF=0, stairSF=0, footingsCount=0, landingCount=0, total6x6Posts=0;
+  zoneCalcs.forEach(calc=>{
+    const z = materialLinesForZone(calc, opts);
+    rawLines.push(...z.lines);
+    carpentrySF += z.carpentrySF; stairSF += z.stairSF;
+    footingsCount += z.footingsCount; landingCount += z.landingCount;
+    total6x6Posts += z.total6x6Posts;
+  });
+
+  // Railing (deck-level, not per zone)
+  if(rl && rl.builtToLength){
+    // PT Wood Rail — built from linear footage rather than pre-made panels:
+    // 2x6 top + bottom rail, balusters at a fixed count/ft, optional drink rail cap board.
+    const pt = PRICE.ptRail;
+    const lfLevel = num(opts.railLFLevel)||0;
+    const lfSloped = num(opts.railLFSloped)||0;
+    const totalLF = lfLevel + lfSloped;
+    const railBoardLF = totalLF * 2; // top rail + bottom rail
+    const rail2x6Candidates = [8,12,16].map(L=>({L, boards: railBoardLF<=0?0:Math.ceil(railBoardLF/L)}));
+    const bestRail = rail2x6Candidates.reduce((a,b)=> (b.boards>0 && (a.boards===0 || b.boards<a.boards)) ? b : a, rail2x6Candidates[0]);
+    pushLine(rawLines, `PT 2x6x${bestRail.L} (top/bottom rail)`, bestRail.boards, 'ea', PRICE.framingPT['2x6'][bestRail.L], true);
+    const balusters = Math.ceil(totalLF * pt.balustersPerFt);
+    pushLine(rawLines, 'PT baluster 36"', balusters, 'ea', pt.balusterEa, true);
+    if(opts.ptDrinkRail==='Y'){
+      const drBoards = totalLF>0 ? Math.ceil(totalLF/pt.drinkRailBoardLen) : 0;
+      pushLine(rawLines, `PT 5/4" decking drink rail cap (${pt.drinkRailBoardLen}')`, drBoards, 'ea', pt.drinkRailBoardPrice, true);
+    }
+  } else if(rl){
+    const railPanelsLevel = num(opts.railPanelsLevel)||0;
+    const railPanelsSloped = num(opts.railPanelsSloped)||0;
+    const railPosts = opts.railPosts!=='' && opts.railPosts!=null ? num(opts.railPosts) : total6x6Posts;
+    const sleeveSize = opts.sleeveSize||'39';
+    pushLine(rawLines, `${railingChoice} — level panel (6')`, railPanelsLevel, 'ea', rl.panel, true);
+    pushLine(rawLines, `${railingChoice} — sloped panel (6', stairs)`, railPanelsSloped, 'ea', rl.panel, true);
+    pushLine(rawLines, `Post sleeve ${sleeveSize}"`, railPosts, 'ea', sleeveSize==='45'?rl.sleeve45:rl.sleeve39, true);
+    pushLine(rawLines, 'Post cap', railPosts, 'ea', rl.postCap, true);
+    pushLine(rawLines, 'Post skirt', railPosts, 'ea', rl.postSkirt, true);
+  }
+
+  // Merge duplicate line items (same label+rate) across zones
+  const merged = {};
+  rawLines.forEach(l=>{
+    const key = l.label+'|'+l.rate;
+    if(!merged[key]) merged[key] = {label:l.label, unit:l.unit, rate:l.rate, taxable:l.taxable, qty:0};
+    merged[key].qty += l.qty;
+  });
+  const lines = Object.values(merged).filter(l=>l.qty>0).map(l=>({...l, ext:l.qty*l.rate}));
+
+  const materialSubtotal = lines.reduce((s,l)=>s + (l.taxable? l.ext:0), 0);
+  const materialTax = materialSubtotal * PRICE.salesTaxRate;
+  const materialTotal = materialSubtotal + materialTax;
+
+  // Labor — summed across zones, one set of rate-driven line items
+  const laborRates = opts.laborRates || PRICE.labor;
+  const laborLines = [];
+  pushLine(laborLines, 'Carpentry (framing + decking)', carpentrySF, 'sf', laborRates.carpentryPerSF, false);
+  pushLine(laborLines, 'Stair carpentry', stairSF, 'sf', laborRates.stairCarpentryPerSF, false);
+  pushLine(laborLines, 'Footings', footingsCount, 'ea', laborRates.footingEa, false);
+  pushLine(laborLines, 'Concrete landing', landingCount, 'ea', laborRates.landingEa, false);
+  const laborTotal = laborLines.reduce((s,l)=>s+l.ext,0);
+
+  return { lines, materialSubtotal, materialTax, materialTotal, laborLines, laborTotal };
+}
+
+// Aggregates one or more decks + job-wide general conditions/margin.
+function aggregateJob(buildingResults, gc, marginPct, contingencyPct, manualSell){
+  const vendors = buildingResults.reduce((s,b)=>s+b.mat.materialTotal,0);
+  const labor = buildingResults.reduce((s,b)=>s+b.mat.laborTotal,0);
+  const general = (num(gc.dumpster)||0)+(num(gc.toilet)||0)+(num(gc.permit)||0)+(num(gc.management)||0);
+  const contingency = (vendors+labor+general) * ((num(contingencyPct)||0)/100);
+  const cogs = general + vendors + labor + contingency;
+  const margin = (num(marginPct)||0)/100;
+  const priceAtMargin = margin<1 ? cogs/(1-margin) : cogs;
+  const sell = (manualSell!==undefined && manualSell!=='' && manualSell!=null) ? num(manualSell) : priceAtMargin;
+  const profit = sell - cogs;
+  const gm = sell>0 ? profit/sell : 0;
+  return { vendors, labor, general, contingency, cogs, priceAtMargin, sell, profit, gm };
+}
+
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  KPS PRICING SYNC                                                    ║
+// ║  Pulls live pricing from the shared "Estimator-Pricing.xlsx" workbook║
+// ║  on the KPS App Suite SharePoint site (same file & sign-in the      ║
+// ║  Roofing Estimator uses — rows are just filtered to Module='Decks'  ║
+// ║  here). If sign-in or the fetch fails for any reason, PRICE stays   ║
+// ║  at its DEFAULT_PRICE values and the app works exactly as before —  ║
+// ║  nothing here can break estimating if SharePoint is unreachable.    ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+const KPS_PRICING_CONFIG = {
+  clientId:     'cb076a13-5e15-4ae7-80cb-68bdd077aea2', // shared "KPS App Suite" app registration
+  tenantId:     '1979066b-105d-423c-9941-42fcd5ac0752', // Kelly's Property Services tenant
+  siteHostname: 'kellyspropertyservices.sharepoint.com',
+  sitePath:     '/sites/KPSAppSuite',
+  // The shared pricing database — one Excel table, reused by every KPS estimator
+  filePath:     '/Estimating/Database/Estimator-Pricing.xlsx',
+  tableName:    'PricingCatalog',
+};
+const GRAPH_SCOPES = ['Sites.Read.All'];
+const GRAPH_WRITE_SCOPES = ['Sites.ReadWrite.All'];
+
+let kpsMsal = null;
+// msal-browser v3+ requires initialize() to resolve before any other MSAL call —
+// every function below awaits this promise first.
+let kpsMsalReady = Promise.resolve();
+if (window.msal) {
+  try {
+    kpsMsal = new msal.PublicClientApplication({
+      auth: {
+        clientId: KPS_PRICING_CONFIG.clientId,
+        authority: 'https://login.microsoftonline.com/' + KPS_PRICING_CONFIG.tenantId,
+        redirectUri: window.location.href.split('#')[0].split('?')[0],
+      },
+      cache: { cacheLocation: 'localStorage' },
+    });
+    kpsMsalReady = kpsMsal.initialize().catch(e => { console.error('MSAL initialize failed', e); kpsMsal = null; });
+  } catch (e) { console.error('MSAL init failed', e); kpsMsal = null; }
+}
+
+function setOdStatus(html, warn) {
+  const t = document.getElementById('odText');
+  if (t) { t.innerHTML = html; t.classList.toggle('warn', !!warn); }
+}
+
+async function connectKPSPricing() {
+  await kpsMsalReady;
+  if (!kpsMsal) { setOdStatus('Prices: <strong>built-in defaults</strong> (sync unavailable)', true); return; }
+  setOdStatus('Signing in…');
+  try {
+    const resp = await kpsMsal.loginPopup({ scopes: GRAPH_SCOPES });
+    kpsMsal.setActiveAccount(resp.account);
+    await syncPricingFromGraph();
+  } catch (err) {
+    console.error('KPS sign-in failed', err);
+    setOdStatus('Prices: <strong>built-in defaults</strong> (sign-in failed)', true);
+  }
+}
+
+async function getGraphToken() {
+  await kpsMsalReady;
+  if (!kpsMsal) throw new Error('MSAL not initialized');
+  const account = kpsMsal.getActiveAccount() || kpsMsal.getAllAccounts()[0];
+  if (!account) throw new Error('not signed in');
+  try {
+    const res = await kpsMsal.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
+    return res.accessToken;
+  } catch (e) {
+    const res = await kpsMsal.acquireTokenPopup({ scopes: GRAPH_SCOPES, account });
+    return res.accessToken;
+  }
+}
+
+async function getGraphWriteToken() {
+  await kpsMsalReady;
+  if (!kpsMsal) throw new Error('MSAL not initialized');
+  let account = kpsMsal.getActiveAccount() || kpsMsal.getAllAccounts()[0];
+  if (!account) {
+    const resp = await kpsMsal.loginPopup({ scopes: GRAPH_WRITE_SCOPES });
+    kpsMsal.setActiveAccount(resp.account);
+    return resp.accessToken;
+  }
+  try {
+    const res = await kpsMsal.acquireTokenSilent({ scopes: GRAPH_WRITE_SCOPES, account });
+    return res.accessToken;
+  } catch (e) {
+    const res = await kpsMsal.acquireTokenPopup({ scopes: GRAPH_WRITE_SCOPES, account });
+    return res.accessToken;
+  }
+}
+
+// Column order in the PricingCatalog Excel table — must match the sheet's header row.
+const PRICING_COLS = ['Title','Module','Category','Manufacturer','ItemKey','UnitCost',
+                       'SecondaryCost','UOM','SortOrder','Active','EffectiveDate','InvoiceRef','Notes'];
+
+// Excel table rows come back as plain arrays (one per spreadsheet row) — turn each
+// into a {ColumnName: value} object using the header order above.
+function excelRowToObj(arr) {
+  const o = {};
+  PRICING_COLS.forEach((c, i) => { o[c] = arr[i]; });
+  return o;
+}
+
+// Turns flat "Estimator-Pricing.xlsx" (PricingCatalog table) rows, filtered to
+// Module='Decks' (plus 'Shared', e.g. sales tax), into the shapes PRICE uses.
+//
+// Row scheme (only 2 numeric columns exist per row, UnitCost/SecondaryCost,
+// so multi-value items — a decking product's 3 lengths, a railing system's
+// 5 accessory prices — are encoded as several rows sharing one Title):
+//   Category 'Material' / 'Labor' / 'Tax' : flat key/value overrides. ItemKey
+//     names the PRICE sub-field it maps to, e.g. 'framing_2x6_12', 'post4x4_12',
+//     'hardware_hurricaneTie', 'consumables_vycorRoll', 'pvc_1x8x18',
+//     'labor_carpentryPerSF', 'ptrail_balusterEa', 'salesTaxRate'.
+//   Category 'Decking' : one group of rows per product, grouped by Title
+//     (matches the key in PRICE.decking, e.g. "TimberTech Reserve"). ItemKey
+//     '12'/'16'/'20' → UnitCost=SE price, SecondaryCost=GV price for that
+//     length; ItemKey 'screwbox'/'clipbox' → UnitCost = box price.
+//   Category 'Railing' : one group of rows per system, grouped by Title
+//     (matches the key in PRICE.railing). ItemKey 'panel'/'sleeve39'/
+//     'sleeve45'/'postcap'/'postskirt' → UnitCost = that accessory's price.
+function buildDeckPricingFromRows(rawRows) {
+  const rows = rawRows.map(excelRowToObj)
+    .filter(r => r.Module === 'Decks' || r.Module === 'Shared')
+    .filter(r => r.Active !== false && r.Active !== 'No' && r.Active !== 0)
+    .sort((a, b) => (Number(a.SortOrder) || 0) - (Number(b.SortOrder) || 0));
+
+  const flat = {};      // ItemKey -> UnitCost, for Material/Labor/Tax rows
+  const decking = {};   // Title -> {SE:{12,16,20}, GV:{12,16,20}, screwBox, clipBox}
+  const railing = {};   // Title -> {panel, sleeve39, sleeve45, postCap, postSkirt}
+
+  rows.forEach(r => {
+    const key = r.ItemKey, title = r.Title;
+    const cost = Number(r.UnitCost), cost2 = Number(r.SecondaryCost);
+    switch (r.Category) {
+      case 'Material': case 'Labor': case 'Tax':
+        if (!isNaN(cost)) flat[key] = cost;
+        break;
+      case 'Decking': {
+        if (!decking[title]) decking[title] = { SE:{}, GV:{}, screwBox:0, clipBox:0 };
+        if (key === '12' || key === '16' || key === '20') {
+          if (!isNaN(cost)) decking[title].SE[key] = cost;
+          if (!isNaN(cost2)) decking[title].GV[key] = cost2;
+        } else if (key === 'screwbox') { if (!isNaN(cost)) decking[title].screwBox = cost; }
+        else if (key === 'clipbox') { if (!isNaN(cost)) decking[title].clipBox = cost; }
+        break;
+      }
+      case 'Railing': {
+        if (!railing[title]) railing[title] = {};
+        if (key === 'panel' && !isNaN(cost)) railing[title].panel = cost;
+        else if (key === 'sleeve39' && !isNaN(cost)) railing[title].sleeve39 = cost;
+        else if (key === 'sleeve45' && !isNaN(cost)) railing[title].sleeve45 = cost;
+        else if (key === 'postcap' && !isNaN(cost)) railing[title].postCap = cost;
+        else if (key === 'postskirt' && !isNaN(cost)) railing[title].postSkirt = cost;
+        break;
+      }
+    }
+  });
+  return { flat, decking, railing };
+}
+
+// Minimum sanity check before trusting a fetched list over the built-in defaults.
+function isDeckPricingUsable(built) {
+  return Object.keys(built.flat).length > 0;
+}
+
+function applyDeckPricing(built) {
+  const f = built.flat;
+  // Framing lumber: framing_<size>_<len> -> PRICE.framingPT[size][len]
+  const framingPT = {};
+  for (const sz of Object.keys(DEFAULT_PRICE.framingPT)) {
+    framingPT[sz] = {};
+    for (const len of Object.keys(DEFAULT_PRICE.framingPT[sz])) {
+      const ik = `framing_${sz}_${len}`;
+      framingPT[sz][len] = f[ik] !== undefined ? f[ik] : DEFAULT_PRICE.framingPT[sz][len];
+    }
+  }
+  const flatMerge = (defaults, prefix) => {
+    const out = {};
+    for (const k of Object.keys(defaults)) {
+      const ik = `${prefix}_${k}`;
+      out[k] = f[ik] !== undefined ? f[ik] : defaults[k];
+    }
+    return out;
+  };
+
+  PRICE.framingPT = framingPT;
+  PRICE.post4x4_12 = f['post4x4_12'] !== undefined ? f['post4x4_12'] : DEFAULT_PRICE.post4x4_12;
+  PRICE.post6x6PerLF = f['post6x6PerLF'] !== undefined ? f['post6x6PerLF'] : DEFAULT_PRICE.post6x6PerLF;
+  PRICE.hardware = flatMerge(DEFAULT_PRICE.hardware, 'hardware');
+  PRICE.consumables = flatMerge(DEFAULT_PRICE.consumables, 'consumables');
+  PRICE.pvc = flatMerge(DEFAULT_PRICE.pvc, 'pvc');
+  PRICE.labor = flatMerge(DEFAULT_PRICE.labor, 'labor');
+  // balustersPerFt / drinkRailBoardLen are physical constants (not $ prices),
+  // not tracked in the pricing sheet — always stay hardcoded, same treatment
+  // roofing gives PVC/flat-roof coverage rates.
+  PRICE.ptRail = {
+    balusterEa: f['ptrail_balusterEa'] !== undefined ? f['ptrail_balusterEa'] : DEFAULT_PRICE.ptRail.balusterEa,
+    balustersPerFt: DEFAULT_PRICE.ptRail.balustersPerFt,
+    drinkRailBoardPrice: f['ptrail_drinkRailBoardPrice'] !== undefined ? f['ptrail_drinkRailBoardPrice'] : DEFAULT_PRICE.ptRail.drinkRailBoardPrice,
+    drinkRailBoardLen: DEFAULT_PRICE.ptRail.drinkRailBoardLen,
+  };
+  PRICE.salesTaxRate = f['salesTaxRate'] !== undefined ? f['salesTaxRate'] : DEFAULT_PRICE.salesTaxRate;
+
+  // Decking / railing product catalogs: merge fetched entries over the coded
+  // defaults per-product (so a sheet row that only updates one length or one
+  // accessory doesn't blank out the rest), and — critically — keep any
+  // default product the sheet doesn't have rows for yet rather than dropping
+  // it, so a brand-new decking/railing option added in code still shows up
+  // until Mike adds its rows to the spreadsheet.
+  const decking = {};
+  for (const title of Object.keys(DEFAULT_PRICE.decking)) {
+    decking[title] = Object.assign({}, DEFAULT_PRICE.decking[title], built.decking[title],
+      { SE: Object.assign({}, DEFAULT_PRICE.decking[title].SE, built.decking[title] && built.decking[title].SE),
+        GV: Object.assign({}, DEFAULT_PRICE.decking[title].GV, built.decking[title] && built.decking[title].GV) });
+  }
+  for (const title of Object.keys(built.decking)) {
+    if (!decking[title]) decking[title] = built.decking[title];
+  }
+  PRICE.decking = decking;
+
+  const railing = {};
+  for (const title of Object.keys(DEFAULT_PRICE.railing)) {
+    railing[title] = Object.assign({}, DEFAULT_PRICE.railing[title], built.railing[title]);
+  }
+  for (const title of Object.keys(built.railing)) {
+    if (!railing[title]) railing[title] = built.railing[title];
+  }
+  PRICE.railing = railing;
+}
+
+function refreshAfterPricingChange() {
+  if (typeof render === 'function') render();
+}
+
+async function syncPricingFromGraph() {
+  try {
+    const token = await getGraphToken();
+    const headers = { Authorization: 'Bearer ' + token };
+    const siteRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${KPS_PRICING_CONFIG.siteHostname}:${KPS_PRICING_CONFIG.sitePath}`,
+      { headers });
+    if (!siteRes.ok) throw new Error('site lookup failed: ' + siteRes.status);
+    const site = await siteRes.json();
+    const encodedPath = KPS_PRICING_CONFIG.filePath.split('/').map(encodeURIComponent).join('/');
+    const itemsRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${site.id}/drive/root:${encodedPath}:/workbook/tables('${KPS_PRICING_CONFIG.tableName}')/rows?$select=values`,
+      { headers });
+    if (!itemsRes.ok) throw new Error('pricing workbook fetch failed: ' + itemsRes.status);
+    const data = await itemsRes.json();
+    const rows = (data.value || []).map(r => r.values[0]);
+    const built = buildDeckPricingFromRows(rows);
+    if (!isDeckPricingUsable(built)) throw new Error('Estimator-Pricing.xlsx has no Decks rows yet');
+    applyDeckPricing(built);
+
+    const stamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    setOdStatus(`Prices: <strong>live from KPS Pricing</strong> · synced ${stamp}`);
+    const a = document.getElementById('odAction');
+    if (a) { a.textContent = 'Refresh prices'; a.onclick = syncPricingFromGraph; }
+    refreshAfterPricingChange();
+  } catch (err) {
+    console.error('KPS pricing sync failed, using built-in defaults', err);
+    setOdStatus('Prices: <strong>built-in defaults</strong> (sync failed)', true);
+  }
+}
+
+// On load: if the user is already signed in from a previous visit, sync silently
+// (no popup). Otherwise leave the "Connect to KPS Pricing" button showing.
+async function initKPSPricing() {
+  await kpsMsalReady;
+  if (!kpsMsal) return;
+  const account = kpsMsal.getAllAccounts()[0];
+  if (account) {
+    kpsMsal.setActiveAccount(account);
+    syncPricingFromGraph();
+  }
+}
+
+// ── SAVE PO SUMMARY TO SHAREPOINT ───────────────────────────────────────────
+// Saves the internal Cost Sheet as a real PDF into
+// Projects/{ProjectID}/Estimating/Decks/ on the KPS App Suite site.
+// Uploading needs write access, so this requests a separate scope from the
+// read-only pricing sync above (incremental consent — same signed-in user).
+function setSpStatus(html, warn) {
+  const el = document.getElementById('spStatus');
+  if (!el) return;
+  el.innerHTML = html;
+  el.style.color = warn ? '#c22b2b' : '#1a7d3c';
+}
+
+async function graphFetch(url, token, opts = {}) {
+  const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error('Graph ' + res.status + ': ' + text.slice(0, 200));
+  }
+  return res;
+}
+
+async function getSuiteDrive(token) {
+  const siteRes = await graphFetch(
+    `https://graph.microsoft.com/v1.0/sites/${KPS_PRICING_CONFIG.siteHostname}:${KPS_PRICING_CONFIG.sitePath}`,
+    token);
+  const site = await siteRes.json();
+  const rootRes = await graphFetch(
+    `https://graph.microsoft.com/v1.0/sites/${site.id}/drive/root?$select=id,parentReference`,
+    token);
+  const root = await rootRes.json();
+  return { siteId: site.id, driveId: root.parentReference.driveId, rootId: root.id };
+}
+
+async function ensureFolder(token, driveId, parentId, name) {
+  const clean = (name || 'Untitled').replace(/[\\/:*?"<>|]/g, '-').trim() || 'Untitled';
+  const listRes = await graphFetch(
+    `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentId}/children?$select=id,name,folder`, token);
+  const list = await listRes.json();
+  const existing = (list.value || []).find(it => it.folder && it.name.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing.id;
+  const createRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentId}/children`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: clean, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' })
+  });
+  if (createRes.ok) return (await createRes.json()).id;
+  // Someone else created it between our check and our create — look it up again.
+  const retryRes = await graphFetch(
+    `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentId}/children?$select=id,name,folder`, token);
+  const retryList = await retryRes.json();
+  const found = (retryList.value || []).find(it => it.folder && it.name.toLowerCase() === clean.toLowerCase());
+  if (found) return found.id;
+  throw new Error('Could not create/find folder "' + clean + '"');
+}
+
+async function ensurePath(token, driveId, rootId, segments) {
+  let parentId = rootId;
+  for (const seg of segments) parentId = await ensureFolder(token, driveId, parentId, seg);
+  return parentId;
+}
+
+async function uploadFile(token, driveId, parentId, filename, blob) {
+  const clean = filename.replace(/[\\/:*?"<>|]/g, '-');
+  if (blob.size < 4 * 1024 * 1024) {
+    await graphFetch(
+      `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentId}:/${encodeURIComponent(clean)}:/content`,
+      token, { method: 'PUT', headers: { 'Content-Type': blob.type || 'application/pdf' }, body: blob });
+  } else {
+    const sessRes = await graphFetch(
+      `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${parentId}:/${encodeURIComponent(clean)}:/createUploadSession`,
+      token, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
+    const session = await sessRes.json();
+    const putRes = await fetch(session.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Length': blob.size, 'Content-Range': `bytes 0-${blob.size - 1}/${blob.size}` },
+      body: blob
+    });
+    if (!putRes.ok && putRes.status !== 202) throw new Error('Upload failed for ' + clean);
+  }
+}
+
+function getIsoDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Triggers a browser download of a Blob.
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+// Saves the Cost Sheet PDF to SharePoint AND downloads the same PDF locally.
+// If SharePoint isn't reachable (sign-in fails, offline, etc.) this falls
+// back to a local-download-only save instead of leaving the user with
+// nothing, since the PDF is already rendered by that point.
+async function saveEstimateToSharePoint() {
+  const projectId = (state.projectId || '').trim();
+  if (!projectId) { setSpStatus('Enter a Project ID on the Project Info page before saving.', true); return; }
+  setSpStatus('Preparing Cost Sheet…');
+  let blob, filename;
+  try {
+    const doc = buildCostSheetDoc();
+    blob = doc.output('blob');
+    filename = `${(state.property||state.projectId||'Project').replace(/[\\/:*?"<>|]/g,'-')} Deck Cost Sheet ${getIsoDateStr()}.pdf`;
+  } catch (err) {
+    console.error('Cost Sheet PDF generation failed', err);
+    setSpStatus('Could not generate the PDF: ' + (err.message || err), true);
+    return;
+  }
+
+  try {
+    setSpStatus('Signing in…');
+    const token = await getGraphWriteToken();
+    setSpStatus('Uploading…');
+    const { driveId, rootId } = await getSuiteDrive(token);
+    const folderId = await ensurePath(token, driveId, rootId, ['Projects', projectId, 'Estimating', 'Decks']);
+    await uploadFile(token, driveId, folderId, filename, blob);
+    downloadBlob(blob, filename);
+    setSpStatus(`Saved to SharePoint (Projects/${projectId}/Estimating/Decks/${filename}) and downloaded locally.`);
+  } catch (err) {
+    console.error('Save to SharePoint failed — falling back to local download only', err);
+    downloadBlob(blob, filename);
+    setSpStatus('SharePoint unavailable (' + (err.message || err) + ') — downloaded locally instead.', true);
+  }
+}
+</script>
+<script>
+/* =========================================================================
+   APPLICATION STATE + UI
+   ========================================================================= */
+// A "zone" is one rectangular framing section (ledger/depth/joists/beam/
+// stairs/etc). An odd-shaped deck is modeled as several zones under one
+// deck — each zone gets its own DCA6 check, and all zones' materials/labor
+// merge into that deck's single PO/summary/proposal.
+function newZone(n){
+  return {
+    name: `Zone ${n}`,
+    ledgerLen:'', deckDepth:'', overhang:1, ply:2, joistSpacing:12, joistSize:'2x8',
+    dropBeam:'Y', beamPly:2, beamSize:'2x8', postHeight:3, numDecksAtUnit:1,
+    numSteps:'', stairWidthIn:48, stairsAtCorner:'N', riserHeight:7.5, treadDepth:11,
+    extraStringersCorner:0, pictureFramed:'N', pvcCladding:'N', concreteLanding:'N',
+  };
+}
+function newBuilding(n){
+  return {
+    name: `Deck ${n}`,
+    zones:[newZone(1)], curZone:0,
+    sketchImage:null, sketchName:'',
+    deckingBrand:'PT 5/4x6', railingSystem:'none', railPanelsLevel:0, railPanelsSloped:0,
+    railPosts:'', sleeveSize:'39', railLFLevel:0, railLFSloped:0, ptDrinkRail:'N',
+  };
+}
+
+const state = {
+  step:1, curBldg:0,
+  projectId:'', property:'', contact:'', pm:'',
+  buildings:[newBuilding(1)],
+  gc:{dumpster:500, toilet:200, permit:0, management:0},
+  marginPct:30, contingencyPct:1.5, manualSell:'',
+};
+
+const STEP_LABELS = ['Project Info','Deck Measurements','Materials & Margin','Summary'];
+
+function computeAll(){
+  return state.buildings.map(b=>{
+    const zoneCalcs = b.zones.map(z=>calcBuilding(z));
+    const mat = materialsForBuilding(zoneCalcs, b);
+    return {b, zoneCalcs, mat};
+  });
+}
+
+function renderStepNav(){
+  const el = document.getElementById('stepNav');
+  el.innerHTML = STEP_LABELS.map((l,i)=>{
+    const n=i+1;
+    const cls = n===state.step?'active':(n<state.step?'done':'');
+    return `<div class="${cls}">${n}. ${l}</div>`;
+  }).join('');
+}
+
+function fieldNum(obj,key,label,unit,extra){
+  return `<div><label>${label}${unit?` (${unit})`:''}</label>
+    <input type="number" step="any" value="${obj[key]===''?'':obj[key]}" data-bind="${key}" ${extra||''}></div>`;
+}
+function fieldSelect(obj,key,label,opts){
+  return `<div><label>${label}</label><select data-bind="${key}">
+    ${opts.map(o=>`<option value="${o.v}" ${obj[key]==o.v?'selected':''}>${o.t}</option>`).join('')}
+  </select></div>`;
+}
+function fieldYN(obj,key,label){
+  return `<div><label>${label}</label><div class="yn" data-yn="${key}">
+    <button data-v="Y" class="${obj[key]==='Y'?'sel':''}">Yes</button>
+    <button data-v="N" class="${obj[key]==='N'?'sel':''}">No</button>
+  </div></div>`;
+}
+
+function bindInputs(root, obj, onChange){
+  root.querySelectorAll('[data-bind]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      const k = el.dataset.bind;
+      obj[k] = el.type==='number' ? (el.value===''?'':parseFloat(el.value)) : el.value;
+      onChange && onChange();
+    });
+  });
+  root.querySelectorAll('[data-yn]').forEach(wrap=>{
+    wrap.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        obj[wrap.dataset.yn] = btn.dataset.v;
+        render();
+      });
+    });
+  });
+}
+
+/* ---------- STEP 1 ---------- */
+function renderStep1(){
+  return `<div class="card">
+    <h2>Project Info</h2>
+    <div class="row">
+      <div><label>Project ID</label><input type="text" data-bind="projectId" value="${state.projectId}"></div>
+      <div><label>Property / Project Name</label><input type="text" data-bind="property" value="${state.property}"></div>
+    </div>
+    <div class="row">
+      <div><label>Contact</label><input type="text" data-bind="contact" value="${state.contact}"></div>
+      <div><label>Project Manager</label><input type="text" data-bind="pm" value="${state.pm}"></div>
+    </div>
+    <h3>Decks in this project</h3>
+    <div class="buildingTabs" id="bldgChips"></div>
+    <div class="btnrow">
+      <button class="btn ghost sm" id="addBldg">+ Add another deck</button>
+      <button class="btn ghost sm" id="removeBldg">Remove last deck</button>
+    </div>
+    <div class="note">Each deck gets its own measurements, structural check, and materials selection on the next steps.</div>
+  </div>`;
+}
+function wireStep1(){
+  document.querySelectorAll('#app [data-bind]').forEach(el=>{
+    el.addEventListener('input', ()=>{ state[el.dataset.bind]=el.value; });
+  });
+  const chips = document.getElementById('bldgChips');
+  chips.innerHTML = state.buildings.map((b,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${b.name}</button>`).join('');
+  chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
+  document.getElementById('addBldg').addEventListener('click', ()=>{
+    state.buildings.push(newBuilding(state.buildings.length+1));
+    state.curBldg = state.buildings.length-1;
+    render();
+  });
+  document.getElementById('removeBldg').addEventListener('click', ()=>{
+    if(state.buildings.length>1){ state.buildings.pop(); if(state.curBldg>=state.buildings.length) state.curBldg=state.buildings.length-1; render(); }
+  });
+}
+
+/* ---------- STEP 2 ---------- */
+function renderChecks(calc){
+  return calc.checks.map(c=>{
+    const cls = c.value==='PASS'?'pass':(c.value===''||c.value==='n/a'?'na':'fail');
+    const shown = c.value===''?'—':c.value;
+    return `<div class="check-row"><span>${c.label}<div class="note">${c.detail}</div></span><span class="badge ${cls}">${shown}</span></div>`;
+  }).join('');
+}
+function renderStep2(){
+  const b = state.buildings[state.curBldg];
+  const z = b.zones[b.curZone];
+  const calc = calcBuilding(z);
+  const oddShapeNote = b.zones.length>1
+    ? `<div class="note">This deck has ${b.zones.length} framing zones — its materials/labor/PO will combine all of them into one deck.</div>`
+    : `<div class="note">Odd-shaped deck? Add another zone below to model each rectangular section separately (e.g. main deck + ell + bump-out) — DCA6 itself is checked per rectangular zone, not on the whole irregular outline.</div>`;
+  return `<div class="buildingTabs" id="bldgChips2"></div>
+  <div class="card">
+    <h2>${b.name} — Reference Sketch</h2>
+    <input type="file" id="sketchInput" accept="image/*">
+    ${b.sketchImage?`<div class="note">Attached: ${b.sketchName} <button class="btn ghost sm" id="clearSketch" style="width:auto;display:inline-block;padding:3px 8px;margin-left:6px">Remove</button></div>
+    <img src="${b.sketchImage}" style="max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--border)">`:''}
+    <div class="note">Attach a photo or sketch of the deck layout for reference on the PO/proposal — it travels with the estimate but measurements below still need to be entered by zone.</div>
+  </div>
+  <div class="card">
+    <h2>${b.name} — Framing Zones</h2>
+    ${oddShapeNote}
+    <div class="buildingTabs" id="zoneChips"></div>
+    <div class="btnrow">
+      <button class="btn ghost sm" id="addZone">+ Add zone</button>
+      <button class="btn ghost sm" id="removeZone">Remove last zone</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>${z.name} — Framing Inputs</h2>
+    <div class="row">
+      <div><label>Deck name</label><input type="text" data-bind-b="name" value="${b.name}"></div>
+      <div><label>Zone name</label><input type="text" data-bind="name" value="${z.name}"></div>
+    </div>
+    <div class="row">
+      ${fieldNum(z,'ledgerLen','Ledger length (along building)','ft')}
+      ${fieldNum(z,'deckDepth','Overall deck depth','ft')}
+    </div>
+    <div class="row">
+      ${fieldNum(z,'overhang','Overhang past beam','ft')}
+      ${fieldSelect(z,'ply','Perimeter/band ply',[{v:1,t:'Single (1)'},{v:2,t:'Double (2)'}])}
+    </div>
+    <div class="row">
+      ${fieldSelect(z,'joistSize','Joist size',[{v:'2x6',t:'2x6'},{v:'2x8',t:'2x8'},{v:'2x10',t:'2x10'},{v:'2x12',t:'2x12'}])}
+      ${fieldSelect(z,'joistSpacing','Joist spacing',[{v:12,t:'12" o.c.'},{v:16,t:'16" o.c.'},{v:24,t:'24" o.c.'}])}
+    </div>
+    <h3>Beam &amp; Posts</h3>
+    ${fieldYN(z,'dropBeam','Drop carrying beam?')}
+    <div class="row">
+      ${fieldSelect(z,'beamPly','Beam ply',[{v:2,t:'2-ply'},{v:3,t:'3-ply'}])}
+      ${fieldSelect(z,'beamSize','Beam size',[{v:'2x6',t:'2x6'},{v:'2x8',t:'2x8'},{v:'2x10',t:'2x10'},{v:'2x12',t:'2x12'}])}
+    </div>
+    ${fieldNum(z,'postHeight','Post height (above footing)','ft')}
+    <h3>Stairs (this zone)</h3>
+    <div class="row">
+      ${fieldNum(z,'numSteps','Number of steps (risers)','ea')}
+      ${fieldNum(z,'stairWidthIn','Stair width','in')}
+    </div>
+    <div class="row">
+      ${fieldNum(z,'riserHeight','Riser height','in')}
+      ${fieldNum(z,'treadDepth','Tread depth','in')}
+    </div>
+    ${fieldYN(z,'stairsAtCorner','Stairs at corner?')}
+    ${z.stairsAtCorner==='Y'?fieldNum(z,'extraStringersCorner','Extra stringers at corner','ea'):''}
+    <h3>Options</h3>
+    ${fieldYN(z,'pictureFramed','Decking picture-framed?')}
+    ${fieldYN(z,'pvcCladding','PVC perimeter cladding?')}
+    ${fieldYN(z,'concreteLanding','Concrete landing at stairs?')}
+  </div>
+  <div class="card">
+    <h2>Code Check — ${z.name} (AWC DCA6-2015, SYP No. 2)</h2>
+    ${renderChecks(calc)}
+    <div class="note" style="margin-top:8px">40 psf live / 10 psf dead, L/360, wet service. Overhang cannot exceed L/4. Verify against local code/AHJ before permitting.</div>
+  </div>`;
+}
+function wireStep2(){
+  const b = state.buildings[state.curBldg];
+  const z = b.zones[b.curZone];
+  bindInputs(document.getElementById('app'), z, render);
+  document.querySelectorAll('[data-bind-b]').forEach(el=>{
+    el.addEventListener('input', ()=>{ b[el.dataset.bindB] = el.value; });
+  });
+  const chips = document.getElementById('bldgChips2');
+  chips.innerHTML = state.buildings.map((bd,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${bd.name}</button>`).join('');
+  chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
+
+  const zchips = document.getElementById('zoneChips');
+  zchips.innerHTML = b.zones.map((zn,i)=>`<button data-i="${i}" class="${i===b.curZone?'sel':''}">${zn.name}</button>`).join('');
+  zchips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{b.curZone=+btn.dataset.i; render();}));
+  document.getElementById('addZone').addEventListener('click', ()=>{
+    b.zones.push(newZone(b.zones.length+1));
+    b.curZone = b.zones.length-1;
+    render();
+  });
+  document.getElementById('removeZone').addEventListener('click', ()=>{
+    if(b.zones.length>1){ b.zones.pop(); if(b.curZone>=b.zones.length) b.curZone=b.zones.length-1; render(); }
+  });
+
+  const sketchInput = document.getElementById('sketchInput');
+  sketchInput.addEventListener('change', ()=>{
+    const file = sketchInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ b.sketchImage = reader.result; b.sketchName = file.name; render(); };
+    reader.readAsDataURL(file);
+  });
+  const clearBtn = document.getElementById('clearSketch');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{ b.sketchImage=null; b.sketchName=''; render(); });
+}
+
+/* ---------- STEP 3 ---------- */
+function renderStep3(){
+  const b = state.buildings[state.curBldg];
+  const tentativePosts = b.zones.reduce((s,z)=>s+calcBuilding(z).total6x6Posts,0);
+  const deckingOpts = Object.keys(PRICE.decking).map(k=>({v:k,t:k}));
+  const railOpts = [{v:'none',t:'None'}].concat(Object.keys(PRICE.railing).map(k=>({v:k,t:k})));
+  return `<div class="buildingTabs" id="bldgChips3"></div>
+  <div class="card">
+    <h2>${b.name} — Decking &amp; Railing</h2>
+    ${fieldSelect(b,'deckingBrand','Decking material',deckingOpts)}
+    <h3>Railing</h3>
+    ${fieldSelect(b,'railingSystem','Railing system',railOpts)}
+    ${b.railingSystem!=='none' && b.railingSystem!=='PT Wood Rail' ? `
+      <div class="row">
+        ${fieldNum(b,'railPanelsLevel','Level panels (6\')','ea')}
+        ${fieldNum(b,'railPanelsSloped','Sloped panels (at stairs, 6\')','ea')}
+      </div>
+      <div class="row">
+        ${fieldNum(b,'railPosts',`Posts needing sleeve/cap (tentative: ${tentativePosts})`,'ea')}
+        ${fieldSelect(b,'sleeveSize','Post sleeve height',[{v:'39',t:'39"'},{v:'45',t:'45"'}])}
+      </div>
+      <div class="note">Panel counts and post accessories reflect field layout — adjust to match the actual deck perimeter/opening plan.</div>
+    ` : ''}
+    ${b.railingSystem==='PT Wood Rail' ? `
+      <div class="row">
+        ${fieldNum(b,'railLFLevel','Level railing (LF)','ft')}
+        ${fieldNum(b,'railLFSloped','Sloped railing at stairs (LF)','ft')}
+      </div>
+      ${fieldYN(b,'ptDrinkRail','Add drink rail cap?')}
+      <div class="note">Built from 2x6 top/bottom rails with balusters at ${PRICE.ptRail.balustersPerFt}/ft. Drink rail adds a 5/4" PT decking cap board on top of the top rail.</div>
+    ` : ''}
+  </div>
+  <div class="card">
+    <h2>General Conditions <span class="pill">whole job</span></h2>
+    <div class="row">
+      <div><label>Dumpster</label><input type="number" id="gc_dumpster" value="${state.gc.dumpster}"></div>
+      <div><label>Toilet</label><input type="number" id="gc_toilet" value="${state.gc.toilet}"></div>
+    </div>
+    <div class="row">
+      <div><label>Permit</label><input type="number" id="gc_permit" value="${state.gc.permit}"></div>
+      <div><label>Management</label><input type="number" id="gc_management" value="${state.gc.management}"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Labor Rates <span class="pill">whole job</span></h2>
+    <div class="row">
+      <div><label>Carpentry ($/sf)</label><input type="number" id="lab_carp" value="${PRICE.labor.carpentryPerSF}"></div>
+      <div><label>Stair carpentry ($/sf)</label><input type="number" id="lab_stair" value="${PRICE.labor.stairCarpentryPerSF}"></div>
+    </div>
+    <div class="row">
+      <div><label>Footings ($/ea)</label><input type="number" id="lab_footing" value="${PRICE.labor.footingEa}"></div>
+      <div><label>Landing ($/ea)</label><input type="number" id="lab_landing" value="${PRICE.labor.landingEa}"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Margin</h2>
+    <div class="row">
+      <div><label>Target margin %</label><input type="number" id="marginPct" value="${state.marginPct}"></div>
+      <div><label>Contingency %</label><input type="number" id="contingencyPct" value="${state.contingencyPct}"></div>
+    </div>
+    <label>Contract price override (optional — leave blank to use margin-computed price)</label>
+    <input type="number" id="manualSell" value="${state.manualSell}">
+  </div>`;
+}
+function wireStep3(){
+  const b = state.buildings[state.curBldg];
+  bindInputs(document.getElementById('app'), b, render);
+  const chips = document.getElementById('bldgChips3');
+  chips.innerHTML = state.buildings.map((bd,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${bd.name}</button>`).join('');
+  chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
+  const bindNum=(id,cb)=>{const el=document.getElementById(id); if(el) el.addEventListener('input',()=>cb(el.value));};
+  bindNum('gc_dumpster', v=>state.gc.dumpster=v);
+  bindNum('gc_toilet', v=>state.gc.toilet=v);
+  bindNum('gc_permit', v=>state.gc.permit=v);
+  bindNum('gc_management', v=>state.gc.management=v);
+  bindNum('lab_carp', v=>PRICE.labor.carpentryPerSF=parseFloat(v)||0);
+  bindNum('lab_stair', v=>PRICE.labor.stairCarpentryPerSF=parseFloat(v)||0);
+  bindNum('lab_footing', v=>PRICE.labor.footingEa=parseFloat(v)||0);
+  bindNum('lab_landing', v=>PRICE.labor.landingEa=parseFloat(v)||0);
+  bindNum('marginPct', v=>state.marginPct=v);
+  bindNum('contingencyPct', v=>state.contingencyPct=v);
+  bindNum('manualSell', v=>state.manualSell=v);
+}
+
+/* ---------- STEP 4 ---------- */
+function money(v){ return '$'+ (Math.round((v||0)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function renderStep4(){
+  const results = computeAll();
+  const job = aggregateJob(results, state.gc, state.marginPct, state.contingencyPct, state.manualSell);
+  let html = `<div class="card">
+    <h2>Job Summary</h2>
+    <div class="totline"><span>Materials (incl. tax)</span><span>${money(job.vendors)}</span></div>
+    <div class="totline"><span>Labor</span><span>${money(job.labor)}</span></div>
+    <div class="totline"><span>General Conditions</span><span>${money(job.general)}</span></div>
+    <div class="totline"><span>Contingency</span><span>${money(job.contingency)}</span></div>
+    <div class="totline"><span>COGS</span><span>${money(job.cogs)}</span></div>
+    <div class="totline"><span>Suggested price at ${state.marginPct}% margin</span><span>${money(job.priceAtMargin)}</span></div>
+    <div class="totline big"><span>Contract Price</span><span>${money(job.sell)}</span></div>
+    <div class="totline"><span>Profit</span><span>${money(job.profit)}</span></div>
+    <div class="totline"><span>Gross Margin</span><span>${(job.gm*100).toFixed(1)}%</span></div>
+  </div>`;
+  results.forEach((r,i)=>{
+    html += `<div class="acc" data-acc="${i}"><div class="acc-h"><span>${r.b.name}</span><span class="chev">▸</span></div><div class="acc-b">
+      ${r.b.sketchImage?`<img src="${r.b.sketchImage}" style="max-width:100%;border-radius:8px;margin:8px 0;border:1px solid var(--border)">`:''}
+      <h3>Framing &amp; Structural</h3>
+      ${r.zoneCalcs.map((zc,zi)=>`<div class="note" style="margin-top:6px;font-weight:600">${r.b.zones[zi].name}</div>${renderChecks(zc)}`).join('')}
+      <h3>Materials</h3>
+      <table class="matx"><thead><tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Ext</th></tr></thead><tbody>
+        ${r.mat.lines.map(l=>`<tr><td>${l.label}</td><td class="num">${round1(l.qty)}</td><td>${l.unit}</td><td class="num">${money(l.rate)}</td><td class="num">${money(l.ext)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="totline"><span>Material subtotal</span><span>${money(r.mat.materialSubtotal)}</span></div>
+      <div class="totline"><span>Sales tax (6.25%)</span><span>${money(r.mat.materialTax)}</span></div>
+      <div class="totline"><span>Material total</span><span>${money(r.mat.materialTotal)}</span></div>
+      <h3>Labor</h3>
+      <table class="matx"><tbody>
+        ${r.mat.laborLines.map(l=>`<tr><td>${l.label}</td><td class="num">${round1(l.qty)}</td><td>${l.unit}</td><td class="num">${money(l.rate)}</td><td class="num">${money(l.ext)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="totline"><span>Labor total</span><span>${money(r.mat.laborTotal)}</span></div>
+    </div></div>`;
+  });
+  html += `<div class="card">
+    <h2>Export</h2>
+    <div class="btnrow">
+      <button class="btn primary" id="pdfCost">Cost Sheet PDF</button>
+      <button class="btn ghost" id="pdfProposal">Draft Proposal PDF</button>
+      <button class="btn ghost" id="pdfPO">Material Order PDF</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="saveSp">Save Cost Sheet to SharePoint</button>
+    </div>
+    <div id="spStatus" class="note"></div>
+  </div>`;
+  return html;
+}
+function wireStep4(){
+  document.querySelectorAll('.acc-h').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));
+  document.getElementById('pdfCost').addEventListener('click', ()=>exportPDF('cost'));
+  document.getElementById('pdfProposal').addEventListener('click', ()=>exportPDF('proposal'));
+  document.getElementById('pdfPO').addEventListener('click', ()=>exportPDF('po'));
+  document.getElementById('saveSp').addEventListener('click', ()=>saveEstimateToSharePoint());
+}
+
+/* ---------- PDF EXPORT ---------- */
+function pdfHelper(doc){
+  let y = 15;
+  const left = 12, right = 198, pageH = 285;
+  function ensure(h){ if(y+h>pageH){ doc.addPage(); y=15; } }
+  function title(t){ ensure(10); doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(t,left,y); y+=7; doc.setFont(undefined,'normal'); doc.setFontSize(10); }
+  function h2(t){ ensure(9); doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.text(t,left,y); y+=6; doc.setFont(undefined,'normal'); doc.setFontSize(9.5); }
+  function line(t){ ensure(6); doc.text(t,left,y); y+=5.2; }
+  function kv(k,v){ ensure(6); doc.text(k,left,y); doc.text(v,right,y,{align:'right'}); y+=5.2; }
+  function rule(){ ensure(3); doc.setDrawColor(200); doc.line(left,y,right,y); y+=3; }
+  function table(headers, rows, colX){
+    ensure(7);
+    doc.setFont(undefined,'bold'); doc.setFontSize(8.5);
+    headers.forEach((hd,i)=>doc.text(hd, colX[i].x, y, {align:colX[i].align||'left'}));
+    y+=4.5; doc.setDrawColor(220); doc.line(left,y-2.5,right,y-2.5);
+    doc.setFont(undefined,'normal');
+    rows.forEach(r=>{
+      ensure(5);
+      r.forEach((cell,i)=>doc.text(String(cell), colX[i].x, y, {align:colX[i].align||'left'}));
+      y+=4.6;
+    });
+    doc.setFontSize(9.5);
+    y+=2;
+  }
+  function space(n){ y+=(n||4); }
+  return {get y(){return y;}, set y(v){y=v;}, ensure, title, h2, line, kv, rule, table, space, left, right};
+}
+
+function scopeBullets(r){
+  const {b,zoneCalcs} = r;
+  const bullets = [];
+  zoneCalcs.forEach((calc,zi)=>{
+    const z = b.zones[zi];
+    const prefix = zoneCalcs.length>1 ? `${z.name}: ` : '';
+    bullets.push(`${prefix}Frame deck: ${calc.joistSize} joists @ ${z.joistSpacing}" o.c., ${calc.beamBuildup==='none'?'ledger-supported':calc.beamBuildup+' drop beam'}, ${calc.total6x6Posts} post(s) on concrete footings`);
+    if(calc.numSteps>0) bullets.push(`${prefix}Build stairs: ${calc.numSteps} risers, ${z.stairWidthIn}" wide, ${calc.stringersReq} stringers`);
+    if(z.concreteLanding==='Y') bullets.push(`${prefix}Pour concrete landing pad at base of stairs`);
+    if(z.pvcCladding==='Y') bullets.push(`${prefix}PVC perimeter fascia cladding at rim/apron`);
+  });
+  bullets.push(`Install ${b.deckingBrand} decking${b.zones.some(z=>z.pictureFramed==='Y')?' with picture-frame border':''}`);
+  if(b.railingSystem!=='none') bullets.push(`Install ${b.railingSystem} railing system`);
+  bullets.push('Full cleanup and haul-away of debris');
+  return bullets;
+}
+
+// Builds the Internal Cost Sheet as a jsPDF document (not yet saved/output) —
+// shared by the "Cost Sheet PDF" export button and saveEstimateToSharePoint(),
+// so both always produce byte-identical PDFs from one code path.
+function buildCostSheetDoc(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const results = computeAll();
+  const job = aggregateJob(results, state.gc, state.marginPct, state.contingencyPct, state.manualSell);
+  const D = pdfHelper(doc);
+
+  D.title("Kelly's Property Services — Deck Estimate: Internal Cost Sheet");
+  D.kv('Project ID:', state.projectId||'—'); D.kv('Property:', state.property||'—');
+  D.kv('Contact:', state.contact||'—'); D.kv('PM:', state.pm||'—'); D.rule();
+  results.forEach(r=>{
+    D.h2(r.b.name);
+    if(r.b.sketchImage){
+      try{
+        const m = /^data:image\/(png|jpeg|jpg|webp);/i.exec(r.b.sketchImage);
+        const fmt = m ? m[1].toUpperCase().replace('JPG','JPEG') : 'JPEG';
+        D.ensure(48); doc.addImage(r.b.sketchImage, fmt, D.left, D.y, 60, 45); D.y += 48;
+      }catch(e){}
+    }
+    r.zoneCalcs.forEach((zc,zi)=>{
+      if(r.zoneCalcs.length>1) D.line(`  ${r.b.zones[zi].name}:`);
+      zc.checks.forEach(c=>D.line(`  ${c.label}: ${c.value||'—'}  (${c.detail})`));
+    });
+    D.space(2);
+    D.table(['Material','Qty','Unit','Rate','Ext'], r.mat.lines.map(l=>[l.label, round1(l.qty), l.unit, money(l.rate), money(l.ext)]),
+      [{x:D.left},{x:120,align:'right'},{x:135},{x:165,align:'right'},{x:D.right,align:'right'}]);
+    D.kv('Material subtotal', money(r.mat.materialSubtotal));
+    D.kv('Sales tax (6.25%)', money(r.mat.materialTax));
+    D.kv('Material total', money(r.mat.materialTotal));
+    D.space(2);
+    D.table(['Labor','Qty','Unit','Rate','Ext'], r.mat.laborLines.map(l=>[l.label, round1(l.qty), l.unit, money(l.rate), money(l.ext)]),
+      [{x:D.left},{x:120,align:'right'},{x:135},{x:165,align:'right'},{x:D.right,align:'right'}]);
+    D.kv('Labor total', money(r.mat.laborTotal));
+    D.rule();
+  });
+  D.h2('Job Cost Summary');
+  D.kv('Vendors (materials)', money(job.vendors));
+  D.kv('Labor', money(job.labor));
+  D.kv('General Conditions', money(job.general));
+  D.kv('Contingency', money(job.contingency));
+  D.kv('COGS', money(job.cogs));
+  D.kv(`Price at ${state.marginPct}% margin`, money(job.priceAtMargin));
+  D.kv('Contract Price', money(job.sell));
+  D.kv('Profit', money(job.profit));
+  D.kv('Gross Margin', (job.gm*100).toFixed(1)+'%');
+  return doc;
+}
+
+function exportPDF(kind){
+  const { jsPDF } = window.jspdf;
+  const doc = kind==='cost' ? buildCostSheetDoc() : new jsPDF();
+  const results = computeAll();
+  const job = aggregateJob(results, state.gc, state.marginPct, state.contingencyPct, state.manualSell);
+  const D = pdfHelper(doc);
+
+  if(kind==='cost'){
+    doc.save(`Deck Estimate - Cost Sheet - ${state.projectId||state.property||'Project'}.pdf`);
+  }
+
+  if(kind==='proposal'){
+    D.title("Kelly's Property Services — Deck Proposal");
+    D.kv('Property:', state.property||'—'); D.kv('Contact:', state.contact||'—'); D.rule();
+    D.h2('What\'s Included');
+    results.forEach(r=>{
+      D.line(r.b.name+':');
+      scopeBullets(r).forEach(t=>D.line('  * '+t));
+      D.space(2);
+    });
+    D.h2('Excludes');
+    ['Permitting fees beyond the allowance included','Electrical or lighting unless separately specified','Removal of an existing deck/structure unless noted above','Landscaping restoration beyond the immediate work area'].forEach(t=>D.line('  • '+t));
+    D.rule();
+    D.h2('Total Project Price');
+    D.kv('Total Project Price', money(job.sell));
+    D.space(6);
+    D.line('This proposal is valid for 30 days. A signed copy and deposit are required to schedule work.');
+    doc.save(`Deck Proposal - ${state.projectId||state.property||'Project'}.pdf`);
+  }
+
+  if(kind==='po'){
+    D.title("Kelly's Property Services — Deck Material Order");
+    D.kv('Project ID:', state.projectId||'—'); D.kv('Property:', state.property||'—'); D.rule();
+    // Merge line items with the same label+rate across buildings
+    const merged = {};
+    results.forEach(r=>r.mat.lines.forEach(l=>{
+      const key=l.label+'|'+l.rate;
+      if(!merged[key]) merged[key]={label:l.label,unit:l.unit,rate:l.rate,qty:0};
+      merged[key].qty += l.qty;
+    }));
+    const rows = Object.values(merged).map(l=>[l.label, round1(l.qty), l.unit, money(l.rate), money(l.qty*l.rate)]);
+    D.table(['Material','Qty','Unit','Rate','Ext'], rows,
+      [{x:D.left},{x:120,align:'right'},{x:135},{x:165,align:'right'},{x:D.right,align:'right'}]);
+    D.rule();
+    D.kv('Material subtotal', money(job.vendors/(1+PRICE.salesTaxRate)));
+    D.kv('Sales tax (6.25%)', money(job.vendors - job.vendors/(1+PRICE.salesTaxRate)));
+    D.kv('P.O. Amount', money(job.vendors));
+    doc.save(`Deck Material Order - ${state.projectId||state.property||'Project'}.pdf`);
+  }
+}
+
+/* ---------- MAIN RENDER / NAV ---------- */
+function render(){
+  renderStepNav();
+  const app = document.getElementById('app');
+  let body='';
+  if(state.step===1) body = renderStep1();
+  else if(state.step===2) body = renderStep2();
+  else if(state.step===3) body = renderStep3();
+  else body = renderStep4();
+  body += `<div class="btnrow">
+    ${state.step>1?'<button class="btn ghost" id="navBack">← Back</button>':'<div style="flex:1"></div>'}
+    ${state.step<4?'<button class="btn primary" id="navNext">Next →</button>':'<div style="flex:1"></div>'}
+  </div>`;
+  app.innerHTML = body;
+  if(state.step===1) wireStep1();
+  else if(state.step===2) wireStep2();
+  else if(state.step===3) wireStep3();
+  else wireStep4();
+  const back=document.getElementById('navBack'); if(back) back.addEventListener('click',()=>{state.step--; render();});
+  const next=document.getElementById('navNext'); if(next) next.addEventListener('click',()=>{state.step++; render();});
+}
+render();
+initKPSPricing();
+</script>
