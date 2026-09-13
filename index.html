@@ -275,7 +275,7 @@ function calcBuilding(inp){
 
   // ---- CONSUMABLES ----
   c.totalFramingLF = c.g1Pieces*c.g1PieceLen + c.g2Pieces*c.g2PieceLen + c.g3Pieces*c.g3PieceLen; // C151
-  c.joistTapeRolls = roundup(c.totalFramingLF/75,0); // C152
+  c.joistTapeRolls = roundup(c.totalFramingLF/PRICE.consumables.joistTapeRollLen,0); // C152 — roll length updated to 65' (Koopman quote #764863)
   c.vycorRolls = (!hasLedger)?0: roundup(c.ledgerLen/50,0); // C153
   c.deckLedgerFlash = (!hasLedger)?0: roundup(c.ledgerLen/10,0); // C154
   c.tensionTieKits = hasLedger ? Math.max(0.5, roundup(c.ledgerLen/4,0)*0.25) : 0; // C239 (computed early for concrete dependency order)
@@ -341,7 +341,7 @@ function calcBuilding(inp){
   c.exposedStringerFaces = 2; // C229
   c.pvcStringerBoards = (!c.pvcCladding||!hasStairs||c.stringerSlopeLen===0)?0: roundup(roundup(c.exposedStringerFaces/Math.max(Math.floor(c.pvcStockLen/c.stringerSlopeLen,1),1),0)*(1+c.boardWaste),0); // C230
   c.pvcTotalLF = !c.pvcCladding?0: (c.pvcSideRuns*c.deckDepth + c.pvcRimRuns*c.ledgerLen + c.riserPieces*c.riserRunLen + c.exposedStringerFaces*c.stringerSlopeLen); // C233
-  c.cortexBoxes = roundup(c.pvcTotalLF/100,1); // C235
+  c.cortexBoxes = roundup(c.pvcTotalLF/PRICE.pvc.cortexBoxLen,1); // C235 — box coverage updated to 250LF (Cortex Wolf, Koopman quote #764863)
   c.ptRiserBoards = (c.pvcCladding||c.riserPieces===0||c.riserRunLen===0)?0: roundup(roundup(c.riserPieces/Math.max(Math.floor(12/c.riserRunLen,1),1),0)*(1+c.boardWaste),0); // C249 (PT risers when no PVC cladding)
 
   // ---- OTHER HARDWARE ----
@@ -396,42 +396,100 @@ function stockPick3(pieces, pieceLen, lens){ return stockPick(pieces,pieceLen,le
 const PRICE = {
   framingPT: { // $/board, by size then length
     '2x6':{8:9.5,12:12.99,16:16.5},
-    '2x8':{8:13.68,12:19.78,16:28.00},
+    '2x8':{8:13.68,12:18.97,16:28.00}, // 12' updated from Koopman quote #764863 (09/11/2026): $18.97
     '2x10':{8:19.00,12:30.00,16:37.00},
-    '2x12':{8:24.50,12:38.00,16:47.48},
+    '2x12':{8:24.50,12:38.00,16:40.51}, // 16' updated from Koopman quote #764863: $40.51
   },
-  post4x4_12: 23.38,
-  post6x6PerLF: 4.8475, // scaled off the $38.78 / 8' rate in the file
+  post4x4_12: 21.95, // updated from Koopman quote #764863: 4x4x12 PT = $21.95
+  post6x6PerLF: 4.12125, // updated from Koopman quote #764863: 6x6x8 PT = $32.97 -> $4.12125/LF
   hardware: {
-    hanger2x8: 2.83, doubleHanger2x8: 7.78,
+    hanger2x8: 2.03, doubleHanger2x8: 21.46, // both updated from Koopman quote #764863 — Mike confirmed the $21.46 is the concealed-flange double hanger, correct match
     hanger2x10: 4.03, doubleHanger2x10: 28.67,
-    hurricaneTie: 0.98, stairHanger: 5.13,
-    postBase6x6: 28.00, postCap6x6: 37.48,
+    hurricaneTie: 0.69, stairHanger: 3.03, // updated from Koopman quote #764863
+    postBase6x6: 28.34, postCap6x6: 37.48, // postBase6x6 updated ($28.34); postCap6x6 intentionally NOT updated — Mike confirmed KPS uses a triple beam, so the quote's "Twin Post Cap" ($16.67) is the wrong product for this setup
     postBase4x4: 10.93, postCap4x4: 9.11,
     readyBase: 44.25,
-    tensionTieKit: 48.48, dtt2z: 11.40,
+    tensionTieKit: 52.89, dtt2z: 8.57, // updated from Koopman quote #764863
     ledgerLokBox: 26.98, // 12-pack, 3-5/8"
-    wedgeAll10pk: 19.98,
+    wedgeAll10pk: 47.60, // updated from Koopman quote #764863: Mike confirmed these are footing anchors (used when footings are needed) — 1/2"x5.5" wedge anchor, box of 25 @ $118.99 -> $47.60/10pk
     miscFasteners: 75, // nails/misc small hardware allowance
   },
   consumables: {
-    joistTapeRoll: 24.98, vycorRoll: 102.06, deckLedgerFlash: 8.83,
-    copperRoll: 66.89, quikreteBag: 6.47,
+    joistTapeRoll: 17.99, joistTapeRollLen: 65, // updated from Koopman quote #764863: G-Tape 2"x65' roll = $17.99 (roll length changed from 75' to the actual 65' on the quote — coverage calc updated to match)
+    vycorRoll: 72.59, // updated from Koopman quote #764863: Vycor Plus 12"x75' = $72.59
+    deckLedgerFlash: 6.39, // updated from Koopman quote #764863: 8' ledger flash = $6.39
+    copperRoll: 70.06, // updated from Koopman quote #764863: 12"x20' copper flashing = $70.06
+    quikreteBag: 7.41, // updated from Koopman quote #764863: 80# concrete mix = $7.41
   },
   pvc: {
-    '1x8x18': 70.15, '1x10x18': 89.87, '1x12x18': 109.38,
-    cortexBox: 140.59, ptRiser1x8x12: 17.99,
+    '1x8x18': 62.80, '1x10x18': 81.09, '1x12x18': 97.39, // all three updated from Koopman quote #764863
+    cortexBox: 151.85, cortexBoxLen: 250, // updated from Koopman quote #764863: Mike confirmed this matches Cortex Wolf 2" 250LF collated ($151.85/250LF) — coverage calc updated from 100LF/box to 250LF/box to match
+    ptRiser1x8x12: 17.99,
   },
-  decking: { // {SE:{12,16,20}, GV:{12,16,20}, screwBox, clipBox}
+  // {SE:{12,16,20}, GV:{12,16,20}, screwBox, clipBox, colors:[...]}
+  // `colors` (added 2026-09-13, pulled from trex.com/timbertech.com) is display-only metadata —
+  // pricing in this app is per PRODUCT LINE, not per color (matches how Trex/TimberTech actually
+  // price: same board cost across every color in a collection). Lines added below with no real
+  // distributor quote yet are priced at 0 across the board and flagged; pick them up from a real
+  // quote before using them on a live estimate, same convention as 'PT 5/4x6' 20' above.
+  decking: {
     'PT 5/4x6':      { SE:{12:12.66,16:16.99,20:0},    GV:{12:12.66,16:16.99,20:0},   screwBox:74.99, clipBox:0 },
-    'Azek Vintage Mahogany': { SE:{12:61.53,16:82.04,20:176.37}, GV:{12:61.53,16:82.04,20:176.37}, screwBox:161.37, clipBox:235.00 },
-    'Trex Select':   { SE:{12:64.05,16:85.40,20:121.87}, GV:{12:64.05,16:85.44,20:106.74}, screwBox:161.37, clipBox:133.00 },
-    'TimberTech Reserve': { SE:{12:80.78,16:107.71,20:134.64}, GV:{12:80.78,16:107.71,20:134.64}, screwBox:161.37, clipBox:133.00 },
-    'TimberTech Pro Legacy': { SE:{12:97.12,16:129.49,20:161.86}, GV:{12:97.12,16:129.49,20:161.86}, screwBox:161.37, clipBox:133.00 },
-    'TimberTech Harvest Slate Grey': { SE:{12:61.53,16:82.04,20:102.56}, GV:{12:61.53,16:82.04,20:102.56}, screwBox:161.37, clipBox:133.00 },
+    // Colors below = the full current TimberTech Advanced PVC Vintage Collection lineup (this
+    // entry was originally priced/named for just the Mahogany color; same board price for all six).
+    'Azek Vintage Mahogany': { SE:{12:61.53,16:82.04,20:176.37}, GV:{12:61.53,16:82.04,20:176.37}, screwBox:161.37, clipBox:235.00,
+      colors:['Coastline','English Walnut','Mahogany','Weathered Teak','Dark Hickory','Cypress'] },
+    // Current official Trex Select "Color Collection" lineup (replaced the older Saddle/Madeira/
+    // Winchester Grey palette) — 35-year warranty line.
+    'Trex Select':   { SE:{12:64.05,16:85.40,20:121.87}, GV:{12:64.05,16:85.44,20:106.74}, screwBox:161.37, clipBox:133.00,
+      colors:['Whiskey Barrel','Malted Barley','Millstone','Pebble Grey','Saddle Select'] },
+    'TimberTech Reserve': { SE:{12:80.78,16:107.71,20:134.64}, GV:{12:80.78,16:107.71,20:134.64}, screwBox:161.37, clipBox:133.00,
+      colors:['Driftwood','Antique Leather','Dark Roast','Reclaimed Chestnut'] },
+    'TimberTech Pro Legacy': { SE:{12:97.12,16:129.49,20:161.86}, GV:{12:97.12,16:129.49,20:161.86}, screwBox:161.37, clipBox:133.00,
+      colors:['Ashwood','Espresso','Mocha','Pecan','Tigerwood','Whitewash Cedar'] },
+    // Entry name kept as-is (was priced/named for the Slate Gray color specifically) — colors
+    // below are the full current AZEK Harvest Collection lineup.
+    'TimberTech Harvest Slate Grey': { SE:{12:61.53,16:82.04,20:102.56}, GV:{12:61.53,16:82.04,20:102.56}, screwBox:161.37, clipBox:133.00,
+      colors:['Brownstone','Slate Gray','Kona'] },
+    // New from Koopman quote #764863 (09/11/2026), Island Mist color: only 20' boards were on
+    // that quote, so 12'/16' are 0 (same placeholder convention as 'PT 5/4x6' above) until priced.
+    // clipBox uses the quote's 50 sqft Trex Universal Clip box ($36.67); screwBox reuses the
+    // standard Trex screw box price (not on this quote, so unconfirmed for this specific line).
+    'Trex Transcend Island Mist': { SE:{12:0,16:0,20:138.12}, GV:{12:0,16:0,20:121.65}, screwBox:161.37, clipBox:36.67,
+      colors:['Havana Gold','Island Mist','Lava Rock','Spiced Rum','Tiki Torch','Rope Swing'] },
+
+    // ---- New lines added 2026-09-13, pulled from trex.com / timbertech.com. No real distributor
+    // quote for any of these yet, so all pricing is 0. Marked `unpriced:true` so the wizard greys
+    // them out in the Decking Material dropdown and blocks selection entirely (2026-09-13, Mike's
+    // request) rather than just showing a warning banner — flip unpriced to false/remove it once
+    // real pricing is loaded for a line.
+    'Trex Enhance Basics':   { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Saddle','Clam Shell','Tide Pool','Pebble Beach'] },
+    'Trex Enhance Naturals': { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Foggy Wharf','Rocky Harbor','Toasted Sand','Honey Grove','Cinnamon Cove','Golden Hour'] },
+    'Trex Signature':        { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Whidbey','Ocracoke'] },
+    'Trex Transcend Lineage':{ SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Island Mist','Rainier','Carmel','Biscayne','Jasper','Salt Flat','Hatteras'] },
+    'TimberTech Landmark':   { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['American Walnut','Castle Gate','French White Oak','Boardwalk'] },
+    'TimberTech Terrain':    { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Brown Oak','Silver Maple','Rustic Elm','Sandy Birch','Stone Ash'] },
+    // Prime (base) + Prime+ (upgrade tier) combined into one line — split into two catalog
+    // entries later if the two tiers turn out to need different pricing.
+    'TimberTech Prime / Prime+': { SE:{12:0,16:0,20:0}, GV:{12:0,16:0,20:0}, screwBox:0, clipBox:0, unpriced:true,
+      colors:['Dark Teak','Maritime Gray','Coconut Husk','Sea Salt Gray','Dark Cocoa'] },
   },
   railing: {
-    'TimberTech Classic Universal (White)': { panel:188.07, sleeve39:73.73, sleeve45:96.83, postCap:24.14, postSkirt:26.95 },
+    // panel/sleeve39 (4"x4")/postSkirt updated from Koopman quote #764863 (09/11/2026):
+    // Universal Rail Kit $147.55, 4x4 Post Sleeve 39" $42.75, Post Skirt $5.51.
+    // postCap NOT updated — Mike flagged the quote's post cap price as suspect, kept at prior value.
+    // sleeve45/sleeve96 are 4"x4" only (not on this quote, no 5.5" data for those heights).
+    // sleeve39_55 = the 5.5"x5.5" post sleeve, $73.73 — this was the OLD value that had been
+    // sitting under sleeve39 (Mike confirmed 2026-09-13 it was actually a 5.5" post quote, not 4"),
+    // so it's been split out into its own width-specific field rather than treated as a price update.
+    // drinkRail = new: Universal Bottom Drink Rail add-on, $26.37 (Koopman quote #764863) — only
+    // priced for this system so far; other systems' drink-rail toggle is disabled until priced.
+    'TimberTech Classic Universal (White)': { panel:147.55, sleeve39:42.75, sleeve45:96.83, sleeve96:112.75, sleeve39_55:73.73, postCap:24.14, postSkirt:5.51, drinkRail:26.37 },
     'TimberTech Impression (Black)':        { panel:190.00, sleeve39:55.00, sleeve45:65.00, postCap:43.00, postSkirt:26.95 },
     'RDI Bella Premiere':                   { panel:118.00, sleeve39:17.00, sleeve45:21.00, postCap:3.61, postSkirt:6.29 },
     'PT Wood Rail':                          { builtToLength:true }, // built from linear footage, not panels — see ptRail below
@@ -441,6 +499,16 @@ const PRICE = {
     balustersPerFt: 2.35,
     drinkRailBoardPrice: 78.88, // PT 5/4" decking drink rail, 12' board
     drinkRailBoardLen: 12,
+  },
+  // New: graspable/ADA vinyl-clad aluminum handrail — separate add-on from the main
+  // railing system, typically used at stairs for code-required graspable handrail.
+  // All pricing from Koopman quote #764863 (09/11/2026).
+  handrail: {
+    sectionLen: 10,          // ft per section
+    sectionPrice: 113.03,    // 10' vinyl-clad alum handrail, white
+    postReturn: 44.27,       // 90° post return, white
+    adaBracket: 22.64,       // ADA mounting bracket, white
+    jointRing: 3.17,         // hand rail joint ring, white
   },
   labor: { carpentryPerSF:38, stairCarpentryPerSF:38, footingEa:300, landingEa:300 },
   salesTaxRate: 0.0625, // MA
@@ -463,7 +531,9 @@ function pushLine(arr,label,qty,unit,rate,taxable){
 // merged into one deck-level PO/summary by materialsForBuilding below.)
 function materialLinesForZone(calc, opts){
   opts = opts||{};
-  const deckingChoice = opts.deckingBrand || 'PT 5/4x6';
+  // Falls back to a priced default if somehow asked for a line that's locked/unpriced —
+  // the wizard already disables these in the dropdown, this is just a second layer of defense.
+  const deckingChoice = (opts.deckingBrand && !(PRICE.decking[opts.deckingBrand]||{}).unpriced) ? opts.deckingBrand : 'PT 5/4x6';
   const dk = PRICE.decking[deckingChoice];
   const lines = []; // {label, qty, unit, rate, ext, taxable}
 
@@ -513,9 +583,10 @@ function materialLinesForZone(calc, opts){
   }
 
   // Decking
+  const deckingLabel = opts.deckingColor ? `${deckingChoice} (${opts.deckingColor})` : deckingChoice;
   for(const len of [12,16,20]){
-    pushLine(lines, `${deckingChoice} ${len}' SE decking`, calc.deckSE[len], 'ea', dk.SE[len]||0, true);
-    pushLine(lines, `${deckingChoice} ${len}' GV decking`, calc.deckGV[len], 'ea', dk.GV[len]||0, true);
+    pushLine(lines, `${deckingLabel} ${len}' SE decking`, calc.deckSE[len], 'ea', dk.SE[len]||0, true);
+    pushLine(lines, `${deckingLabel} ${len}' GV decking`, calc.deckGV[len], 'ea', dk.GV[len]||0, true);
   }
   pushLine(lines, 'Decking screws w/ plugs (SE, box)', calc.screwsWithPlugsBoxes, 'box', dk.screwBox, true);
   if(dk.clipBox) pushLine(lines, 'Concealed deck clips (GV, box)', calc.concealClipsBoxes, 'box', dk.clipBox, true);
@@ -564,12 +635,31 @@ function materialsForBuilding(zoneCalcs, opts){
     const railPanelsLevel = num(opts.railPanelsLevel)||0;
     const railPanelsSloped = num(opts.railPanelsSloped)||0;
     const railPosts = opts.railPosts!=='' && opts.railPosts!=null ? num(opts.railPosts) : total6x6Posts;
+    const postWidth = opts.postWidth||'4';           // '4' = 4"x4", '5.5' = 5.5"x5.5"
     const sleeveSize = opts.sleeveSize||'39';
+    const sleeveKey = postWidth==='5.5' ? `sleeve${sleeveSize}_55` : `sleeve${sleeveSize}`;
+    const sleevePrice = rl[sleeveKey] != null ? rl[sleeveKey] : (rl.sleeve39||0); // fall back to 4x4/39" if this width/height combo has no price yet
     pushLine(rawLines, `${railingChoice} — level panel (6')`, railPanelsLevel, 'ea', rl.panel, true);
     pushLine(rawLines, `${railingChoice} — sloped panel (6', stairs)`, railPanelsSloped, 'ea', rl.panel, true);
-    pushLine(rawLines, `Post sleeve ${sleeveSize}"`, railPosts, 'ea', sleeveSize==='45'?rl.sleeve45:rl.sleeve39, true);
+    pushLine(rawLines, `Post sleeve ${postWidth==='5.5'?'5.5"x5.5"':'4"x4"'} — ${sleeveSize}"`, railPosts, 'ea', sleevePrice, true);
     pushLine(rawLines, 'Post cap', railPosts, 'ea', rl.postCap, true);
     pushLine(rawLines, 'Post skirt', railPosts, 'ea', rl.postSkirt, true);
+    if(opts.drinkRail==='Y' && rl.drinkRail!=null){
+      const drinkRailQty = railPanelsLevel + railPanelsSloped; // one drink rail add-on per panel (level + sloped)
+      pushLine(rawLines, `${railingChoice} — bottom drink rail add-on (6')`, drinkRailQty, 'ea', rl.drinkRail, true);
+    }
+  }
+
+  // Graspable/ADA handrail — a separate stair add-on, independent of the main railing
+  // system choice above (code-required graspable rail is often a different product/run).
+  if(opts.addHandrail==='Y'){
+    const hr = PRICE.handrail;
+    const hrLF = num(opts.handrailLF)||0;
+    const hrSections = hrLF>0 ? Math.ceil(hrLF/hr.sectionLen) : 0;
+    pushLine(rawLines, `Graspable ADA handrail (${hr.sectionLen}' section)`, hrSections, 'ea', hr.sectionPrice, true);
+    pushLine(rawLines, '90° post return', num(opts.handrailReturns)||0, 'ea', hr.postReturn, true);
+    pushLine(rawLines, 'ADA mounting bracket', num(opts.handrailBrackets)||0, 'ea', hr.adaBracket, true);
+    pushLine(rawLines, 'Hand rail joint ring', num(opts.handrailJoints)||0, 'ea', hr.jointRing, true);
   }
 
   // Merge duplicate line items (same label+rate) across zones
@@ -731,7 +821,13 @@ function excelRowToObj(arr) {
 //     length; ItemKey 'screwbox'/'clipbox' → UnitCost = box price.
 //   Category 'Railing' : one group of rows per system, grouped by Title
 //     (matches the key in PRICE.railing). ItemKey 'panel'/'sleeve39'/
-//     'sleeve45'/'postcap'/'postskirt' → UnitCost = that accessory's price.
+//     'sleeve45'/'sleeve96'/'sleeve39_55'/'sleeve45_55'/'sleeve96_55'/'postcap'/
+//     'postskirt'/'drinkrail' → UnitCost = that accessory's price. The '_55'
+//     suffix is the 5.5"x5.5" post width; plain 'sleeveNN' keys are 4"x4".
+//   Category 'Handrail' : flat, single group (graspable/ADA handrail, not tied to
+//     a Title/system). ItemKey 'sectionlen'/'sectionprice'/'postreturn'/
+//     'adabracket'/'jointring' → UnitCost = that field's value (sectionlen is a
+//     length in feet, not a price, but travels the same way).
 function buildDeckPricingFromRows(rawRows) {
   const rows = rawRows.map(excelRowToObj)
     .filter(r => r.Module === 'Decks' || r.Module === 'Shared')
@@ -740,7 +836,8 @@ function buildDeckPricingFromRows(rawRows) {
 
   const flat = {};      // ItemKey -> UnitCost, for Material/Labor/Tax rows
   const decking = {};   // Title -> {SE:{12,16,20}, GV:{12,16,20}, screwBox, clipBox}
-  const railing = {};   // Title -> {panel, sleeve39, sleeve45, postCap, postSkirt}
+  const railing = {};   // Title -> {panel, sleeve39, sleeve45, sleeve96, sleeve39_55, ..., postCap, postSkirt, drinkRail}
+  const handrail = {};  // {sectionLen, sectionPrice, postReturn, adaBracket, jointRing}
 
   rows.forEach(r => {
     const key = r.ItemKey, title = r.Title;
@@ -761,15 +858,23 @@ function buildDeckPricingFromRows(rawRows) {
       case 'Railing': {
         if (!railing[title]) railing[title] = {};
         if (key === 'panel' && !isNaN(cost)) railing[title].panel = cost;
-        else if (key === 'sleeve39' && !isNaN(cost)) railing[title].sleeve39 = cost;
-        else if (key === 'sleeve45' && !isNaN(cost)) railing[title].sleeve45 = cost;
+        else if (/^sleeve(39|45|96)(_55)?$/.test(key) && !isNaN(cost)) railing[title][key] = cost;
         else if (key === 'postcap' && !isNaN(cost)) railing[title].postCap = cost;
         else if (key === 'postskirt' && !isNaN(cost)) railing[title].postSkirt = cost;
+        else if (key === 'drinkrail' && !isNaN(cost)) railing[title].drinkRail = cost;
+        break;
+      }
+      case 'Handrail': {
+        if (key === 'sectionlen' && !isNaN(cost)) handrail.sectionLen = cost;
+        else if (key === 'sectionprice' && !isNaN(cost)) handrail.sectionPrice = cost;
+        else if (key === 'postreturn' && !isNaN(cost)) handrail.postReturn = cost;
+        else if (key === 'adabracket' && !isNaN(cost)) handrail.adaBracket = cost;
+        else if (key === 'jointring' && !isNaN(cost)) handrail.jointRing = cost;
         break;
       }
     }
   });
-  return { flat, decking, railing };
+  return { flat, decking, railing, handrail };
 }
 
 // Minimum sanity check before trusting a fetched list over the built-in defaults.
@@ -840,6 +945,9 @@ function applyDeckPricing(built) {
     if (!railing[title]) railing[title] = built.railing[title];
   }
   PRICE.railing = railing;
+
+  // Graspable/ADA handrail — flat, single group, same merge-over-defaults treatment.
+  PRICE.handrail = Object.assign({}, DEFAULT_PRICE.handrail, built.handrail);
 }
 
 function refreshAfterPricingChange() {
@@ -1044,8 +1152,10 @@ function newBuilding(n){
     name: `Deck ${n}`,
     zones:[newZone(1)], curZone:0,
     sketchImage:null, sketchName:'',
-    deckingBrand:'PT 5/4x6', railingSystem:'none', railPanelsLevel:0, railPanelsSloped:0,
-    railPosts:'', sleeveSize:'39', railLFLevel:0, railLFSloped:0, ptDrinkRail:'N',
+    deckingBrand:'PT 5/4x6', deckingColor:'', railingSystem:'none', railPanelsLevel:0, railPanelsSloped:0,
+    railPosts:'', postWidth:'4', sleeveSize:'39', railLFLevel:0, railLFSloped:0, ptDrinkRail:'N',
+    drinkRail:'N',
+    addHandrail:'N', handrailLF:0, handrailReturns:0, handrailBrackets:0, handrailJoints:0,
   };
 }
 
@@ -1082,7 +1192,7 @@ function fieldNum(obj,key,label,unit,extra){
 }
 function fieldSelect(obj,key,label,opts){
   return `<div><label>${label}</label><select data-bind="${key}">
-    ${opts.map(o=>`<option value="${o.v}" ${obj[key]==o.v?'selected':''}>${o.t}</option>`).join('')}
+    ${opts.map(o=>`<option value="${o.v}" ${obj[key]==o.v?'selected':''} ${o.disabled?'disabled':''}>${o.t}</option>`).join('')}
   </select></div>`;
 }
 function fieldYN(obj,key,label){
@@ -1263,15 +1373,30 @@ function wireStep2(){
 }
 
 /* ---------- STEP 3 ---------- */
+// Which sleeve heights actually have a price for the given width, for the currently
+// selected railing system — 5.5" posts only have 39" priced right now (from Mike's
+// last quote), whereas 4" posts have 39/45/96. Falls back to at least offering 39"
+// so the select never renders empty.
+function sleeveHeightOpts(b){
+  const rl = PRICE.railing[b.railingSystem] || {};
+  const suffix = b.postWidth==='5.5' ? '_55' : '';
+  const heights = ['39','45','96'].filter(h => rl[`sleeve${h}${suffix}`] != null);
+  return (heights.length ? heights : ['39']).map(h=>({v:h,t:h+'"'}));
+}
 function renderStep3(){
   const b = state.buildings[state.curBldg];
   const tentativePosts = b.zones.reduce((s,z)=>s+calcBuilding(z).total6x6Posts,0);
-  const deckingOpts = Object.keys(PRICE.decking).map(k=>({v:k,t:k}));
+  const deckingOpts = Object.keys(PRICE.decking).map(k=>{
+    const unpriced = PRICE.decking[k].unpriced;
+    return { v:k, t: unpriced ? `${k} (pricing pending — locked)` : k, disabled: !!unpriced };
+  });
   const railOpts = [{v:'none',t:'None'}].concat(Object.keys(PRICE.railing).map(k=>({v:k,t:k})));
   return `<div class="buildingTabs" id="bldgChips3"></div>
   <div class="card">
     <h2>${b.name} — Decking &amp; Railing</h2>
     ${fieldSelect(b,'deckingBrand','Decking material',deckingOpts)}
+    ${(()=>{ const dk = PRICE.decking[b.deckingBrand]||{}; const colorOpts = (dk.colors||[]).map(c=>({v:c,t:c}));
+      return colorOpts.length ? fieldSelect(b,'deckingColor','Color',colorOpts) : ''; })()}
     <h3>Railing</h3>
     ${fieldSelect(b,'railingSystem','Railing system',railOpts)}
     ${b.railingSystem!=='none' && b.railingSystem!=='PT Wood Rail' ? `
@@ -1281,8 +1406,11 @@ function renderStep3(){
       </div>
       <div class="row">
         ${fieldNum(b,'railPosts',`Posts needing sleeve/cap (tentative: ${tentativePosts})`,'ea')}
-        ${fieldSelect(b,'sleeveSize','Post sleeve height',[{v:'39',t:'39"'},{v:'45',t:'45"'}])}
+        ${fieldSelect(b,'postWidth','Post width',[{v:'4',t:'4"x4"'},{v:'5.5',t:'5.5"x5.5"'}])}
+        ${fieldSelect(b,'sleeveSize','Post sleeve height',sleeveHeightOpts(b))}
       </div>
+      ${(PRICE.railing[b.railingSystem]||{})[`sleeve${b.sleeveSize||'39'}${b.postWidth==='5.5'?'_55':''}`] == null ? `<div class="note">No price on file yet for a ${b.postWidth==='5.5'?'5.5"x5.5"':'4"x4"'} sleeve at this height — falling back to the 4"x4"/39" price until real pricing is added.</div>` : ''}
+      ${(PRICE.railing[b.railingSystem]||{}).drinkRail!=null ? fieldYN(b,'drinkRail','Add bottom drink rail?') : '<div class="note">Bottom drink rail add-on isn\'t priced yet for this railing system.</div>'}
       <div class="note">Panel counts and post accessories reflect field layout — adjust to match the actual deck perimeter/opening plan.</div>
     ` : ''}
     ${b.railingSystem==='PT Wood Rail' ? `
@@ -1292,6 +1420,21 @@ function renderStep3(){
       </div>
       ${fieldYN(b,'ptDrinkRail','Add drink rail cap?')}
       <div class="note">Built from 2x6 top/bottom rails with balusters at ${PRICE.ptRail.balustersPerFt}/ft. Drink rail adds a 5/4" PT decking cap board on top of the top rail.</div>
+    ` : ''}
+  </div>
+  <div class="card">
+    <h2>Graspable / ADA Handrail <span class="pill">optional, stairs</span></h2>
+    ${fieldYN(b,'addHandrail','Add graspable/ADA handrail?')}
+    ${b.addHandrail==='Y' ? `
+      <div class="row">
+        ${fieldNum(b,'handrailLF','Handrail length (LF)','ft')}
+        ${fieldNum(b,'handrailReturns','90° post returns','ea')}
+      </div>
+      <div class="row">
+        ${fieldNum(b,'handrailBrackets','ADA mounting brackets','ea')}
+        ${fieldNum(b,'handrailJoints','Joint rings','ea')}
+      </div>
+      <div class="note">Vinyl-clad aluminum handrail sold in ${PRICE.handrail.sectionLen}' sections — separate from the main railing system above, typically added at stairs for graspable-rail code compliance.</div>
     ` : ''}
   </div>
   <div class="card">
@@ -1444,8 +1587,9 @@ function scopeBullets(r){
     if(z.concreteLanding==='Y') bullets.push(`${prefix}Pour concrete landing pad at base of stairs`);
     if(z.pvcCladding==='Y') bullets.push(`${prefix}PVC perimeter fascia cladding at rim/apron`);
   });
-  bullets.push(`Install ${b.deckingBrand} decking${b.zones.some(z=>z.pictureFramed==='Y')?' with picture-frame border':''}`);
-  if(b.railingSystem!=='none') bullets.push(`Install ${b.railingSystem} railing system`);
+  bullets.push(`Install ${b.deckingBrand}${b.deckingColor?` (${b.deckingColor})`:''} decking${b.zones.some(z=>z.pictureFramed==='Y')?' with picture-frame border':''}`);
+  if(b.railingSystem!=='none') bullets.push(`Install ${b.railingSystem} railing system${b.drinkRail==='Y'?' with bottom drink rail':''}`);
+  if(b.addHandrail==='Y') bullets.push('Install graspable ADA handrail at stairs');
   bullets.push('Full cleanup and haul-away of debris');
   return bullets;
 }
