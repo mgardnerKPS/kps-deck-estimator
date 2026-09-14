@@ -437,7 +437,10 @@ const PRICE = {
     'PT 5/4x6':      { SE:{12:12.66,16:16.99,20:0},    GV:{12:12.66,16:16.99,20:0},   screwBox:74.99, clipBox:0 },
     // Colors below = the full current TimberTech Advanced PVC Vintage Collection lineup (this
     // entry was originally priced/named for just the Mahogany color; same board price for all six).
-    'Azek Vintage Mahogany': { SE:{12:61.53,16:82.04,20:176.37}, GV:{12:61.53,16:82.04,20:176.37}, screwBox:161.37, clipBox:235.00,
+    // Renamed from 'Azek Vintage Mahogany' (2026-09-14, Mike's request) — the product-line name
+    // shouldn't bake in one specific color when the color picker right below it lists that same
+    // color as an option; same board price for the whole collection either way.
+    'Azek Vintage': { SE:{12:61.53,16:82.04,20:176.37}, GV:{12:61.53,16:82.04,20:176.37}, screwBox:161.37, clipBox:235.00,
       colors:['Coastline','English Walnut','Mahogany','Weathered Teak','Dark Hickory','Cypress'] },
     // Current official Trex Select "Color Collection" lineup (replaced the older Saddle/Madeira/
     // Winchester Grey palette) — 35-year warranty line.
@@ -447,15 +450,18 @@ const PRICE = {
       colors:['Driftwood','Antique Leather','Dark Roast','Reclaimed Chestnut'] },
     'TimberTech Pro Legacy': { SE:{12:97.12,16:129.49,20:161.86}, GV:{12:97.12,16:129.49,20:161.86}, screwBox:161.37, clipBox:133.00,
       colors:['Ashwood','Espresso','Mocha','Pecan','Tigerwood','Whitewash Cedar'] },
-    // Entry name kept as-is (was priced/named for the Slate Gray color specifically) — colors
-    // below are the full current AZEK Harvest Collection lineup.
-    'TimberTech Harvest Slate Grey': { SE:{12:61.53,16:82.04,20:102.56}, GV:{12:61.53,16:82.04,20:102.56}, screwBox:161.37, clipBox:133.00,
+    // Renamed from 'TimberTech Harvest Slate Grey' (2026-09-14, Mike's request — was priced/named
+    // for the Slate Gray color specifically, but the color picker below already lists it) —
+    // colors below are the full current AZEK Harvest Collection lineup.
+    'TimberTech Harvest': { SE:{12:61.53,16:82.04,20:102.56}, GV:{12:61.53,16:82.04,20:102.56}, screwBox:161.37, clipBox:133.00,
       colors:['Brownstone','Slate Gray','Kona'] },
-    // New from Koopman quote #764863 (09/11/2026), Island Mist color: only 20' boards were on
-    // that quote, so 12'/16' are 0 (same placeholder convention as 'PT 5/4x6' above) until priced.
-    // clipBox uses the quote's 50 sqft Trex Universal Clip box ($36.67); screwBox reuses the
-    // standard Trex screw box price (not on this quote, so unconfirmed for this specific line).
-    'Trex Transcend Island Mist': { SE:{12:0,16:0,20:138.12}, GV:{12:0,16:0,20:121.65}, screwBox:161.37, clipBox:36.67,
+    // Renamed from 'Trex Transcend Island Mist' (2026-09-14, Mike's request — same reasoning:
+    // color belongs in the color picker, not the product-line name). New from Koopman quote
+    // #764863 (09/11/2026), Island Mist color: only 20' boards were on that quote, so 12'/16'
+    // are 0 (same placeholder convention as 'PT 5/4x6' above) until priced. clipBox uses the
+    // quote's 50 sqft Trex Universal Clip box ($36.67); screwBox reuses the standard Trex screw
+    // box price (not on this quote, so unconfirmed for this specific line).
+    'Trex Transcend': { SE:{12:0,16:0,20:138.12}, GV:{12:0,16:0,20:121.65}, screwBox:161.37, clipBox:36.67,
       colors:['Havana Gold','Island Mist','Lava Rock','Spiced Rum','Tiki Torch','Rope Swing'] },
 
     // ---- New lines added 2026-09-13, pulled from trex.com / timbertech.com. No real distributor
