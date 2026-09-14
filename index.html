@@ -154,6 +154,7 @@ function calcBuilding(inp){
   c.pictureFramed = inp.pictureFramed==='Y'; // C23
   c.pvcCladding = inp.pvcCladding==='Y';      // C24
   c.concreteLanding = inp.concreteLanding==='Y'; // C25
+  c.reuseFooting = inp.reuseFooting==='Y'; // reuse existing footings — eliminate new-footing costs
 
   const hasLedger = c.ledgerLen>0;
   const hasDepth  = c.deckDepth>0;
@@ -171,7 +172,7 @@ function calcBuilding(inp){
   c.joistBracketT3A = c.dropBeam ? Math.min(18, bracket(c.joistSpanL,18)) : ''; // C34
   c.allowBeamSpan = c.dropBeam ? ((TABLE3A[c.beamBuildup]||{})[c.joistBracketT3A]||0) : 0; // C35
   c.beamLength = c.dropBeam ? c.ledgerLen : 0; // C36
-  c.postsRequired = (!c.dropBeam || c.allowBeamSpan===0) ? 0 : (roundup(c.beamLength/c.allowBeamSpan,0)+1); // C37
+  c.postsRequired = (!c.dropBeam || c.allowBeamSpan===0) ? 0 : Math.max(2, roundup(c.beamLength/c.allowBeamSpan,0)+1); // C37 (min 2 footings under a drop beam)
   c.postSpacing = c.postsRequired<2 ? 0 : c.beamLength/(c.postsRequired-1); // C38
   c.beamSpanCheck = !c.dropBeam ? 'n/a' : (c.postSpacing<=c.allowBeamSpan?'PASS':'FAIL'); // C39
   c.beamBracketT4 = c.dropBeam ? bracket(c.postSpacing,18) : ''; // C40
@@ -266,7 +267,7 @@ function calcBuilding(inp){
   c.hurricaneTies = c.dropBeam ? (c.fieldJoists + 2*c.ply) : 0; // C134
   c.postBase6x6 = c.beamPosts; // C135
   c.postCap6x6 = c.beamPosts; // C136
-  c.readyBase = c.total6x6Posts; // C137
+  c.readyBase = c.reuseFooting ? 0 : c.total6x6Posts; // C137 (skip new footing forms if reusing existing)
   c.midPost4x4Boards = c.midPostBoards; // C138
   c.midPostBase4x4 = c.midPostsReq; // C139
   c.midPostCap4x4 = c.midPostsReq; // C140
@@ -347,7 +348,7 @@ function calcBuilding(inp){
   // ---- OTHER HARDWARE ----
   c.ledger4ftInc = hasLedger? roundup(c.ledgerLen/4,0):0; // C238
   c.tensionTieKits = hasLedger? Math.max(0.5, c.ledger4ftInc*0.25):0; // C239 (final)
-  c.totalFootingsAll = c.total6x6Posts + c.midPostsReq; // C240
+  c.totalFootingsAll = (c.reuseFooting ? 0 : c.total6x6Posts) + c.midPostsReq; // C240 (stair mid-post footings still counted even when reusing beam/corner footings)
   c.wedgeAll = c.totalFootingsAll; // C241
   c.copperFlashingLF = hasLedger ? c.ledgerLen*1.2 : 0; // C245
   c.copperRolls = xround(c.copperFlashingLF/20,1); // C246
@@ -360,7 +361,7 @@ function calcBuilding(inp){
   c.landingWidth = hasStairs? c.stairWidthIn+12:0; // C261
   c.landingProjection = 2.5; c.landingThickness = 8; // C262/263
   c.concreteLandingPad = c.concreteLanding? (c.landingWidth/12)*c.landingProjection*(c.landingThickness/12) : 0; // C264
-  c.totalConcrete = c.beamPosts*c.concretePerBeamPier + c.cornerLandingPost*c.concretePerOther6x6Footing + c.midPostsReq*c.concretePer4x4StairFooting + c.concreteLandingPad; // C257
+  c.totalConcrete = (c.reuseFooting ? 0 : (c.beamPosts*c.concretePerBeamPier + c.cornerLandingPost*c.concretePerOther6x6Footing)) + c.midPostsReq*c.concretePer4x4StairFooting + c.concreteLandingPad; // C257 (skip beam/corner footing concrete when reusing existing footings)
   c.bearingCheck = (c.footingDia===0||c.pierDia===0)?'n/a':(c.pierDia>=c.footingDia?'PASS':'REVIEW - pier narrower than Table 4'); // C258
   c.quikreteBags = roundup(c.totalConcrete/0.6,0); // C155
 
@@ -1145,6 +1146,7 @@ function newZone(n){
     dropBeam:'Y', beamPly:2, beamSize:'2x8', postHeight:3, numDecksAtUnit:1,
     numSteps:'', stairWidthIn:48, stairsAtCorner:'N', riserHeight:7.5, treadDepth:11,
     extraStringersCorner:0, pictureFramed:'N', pvcCladding:'N', concreteLanding:'N',
+    reuseFooting:'N',
   };
 }
 function newBuilding(n){
@@ -1190,6 +1192,27 @@ function fieldNum(obj,key,label,unit,extra){
   return `<div><label>${label}${unit?` (${unit})`:''}</label>
     <input type="number" step="any" value="${obj[key]===''?'':obj[key]}" data-bind="${key}" ${extra||''}></div>`;
 }
+// Feet+inches paired input for the deck's own dimensions (ledger length, depth,
+// overhang, post height) — stored internally as a single decimal-feet value
+// (same as before) so all downstream DCA6/pricing math is unchanged; this is
+// purely an entry-friendlier UI on top of that value.
+function splitFtIn(v){
+  if(v===''||v==null||isNaN(v)) return {ft:'', inch:''};
+  const totalIn = Math.round(v*12);
+  const ft = Math.floor(totalIn/12);
+  const inch = totalIn - ft*12;
+  return {ft, inch};
+}
+function fieldFtIn(obj,key,label){
+  const {ft,inch} = splitFtIn(obj[key]);
+  return `<div><label>${label} (ft-in)</label>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="number" step="1" min="0" placeholder="ft" value="${ft}" data-bindft="${key}" style="flex:1">
+      <span class="note" style="margin:0">ft</span>
+      <input type="number" step="1" min="0" max="11" placeholder="in" value="${inch}" data-bindin="${key}" style="flex:1">
+      <span class="note" style="margin:0">in</span>
+    </div></div>`;
+}
 function fieldSelect(obj,key,label,opts){
   return `<div><label>${label}</label><select data-bind="${key}">
     ${opts.map(o=>`<option value="${o.v}" ${obj[key]==o.v?'selected':''} ${o.disabled?'disabled':''}>${o.t}</option>`).join('')}
@@ -1207,6 +1230,26 @@ function bindInputs(root, obj, onChange){
     el.addEventListener('input', ()=>{
       const k = el.dataset.bind;
       obj[k] = el.type==='number' ? (el.value===''?'':parseFloat(el.value)) : el.value;
+      onChange && onChange();
+    });
+  });
+  root.querySelectorAll('[data-bindft]').forEach(ftEl=>{
+    ftEl.addEventListener('input', ()=>{
+      const k = ftEl.dataset.bindft;
+      const inEl = root.querySelector(`[data-bindin="${k}"]`);
+      const ft = ftEl.value===''?0:parseFloat(ftEl.value);
+      const inch = (inEl && inEl.value!=='')?parseFloat(inEl.value):0;
+      obj[k] = ft + inch/12;
+      onChange && onChange();
+    });
+  });
+  root.querySelectorAll('[data-bindin]').forEach(inEl=>{
+    inEl.addEventListener('input', ()=>{
+      const k = inEl.dataset.bindin;
+      const ftEl = root.querySelector(`[data-bindft="${k}"]`);
+      const ft = (ftEl && ftEl.value!=='')?parseFloat(ftEl.value):0;
+      const inch = inEl.value===''?0:parseFloat(inEl.value);
+      obj[k] = ft + inch/12;
       onChange && onChange();
     });
   });
@@ -1297,11 +1340,11 @@ function renderStep2(){
       <div><label>Zone name</label><input type="text" data-bind="name" value="${z.name}"></div>
     </div>
     <div class="row">
-      ${fieldNum(z,'ledgerLen','Ledger length (along building)','ft')}
-      ${fieldNum(z,'deckDepth','Overall deck depth','ft')}
+      ${fieldFtIn(z,'ledgerLen','Ledger length (along building)')}
+      ${fieldFtIn(z,'deckDepth','Overall deck depth')}
     </div>
     <div class="row">
-      ${fieldNum(z,'overhang','Overhang past beam','ft')}
+      ${fieldFtIn(z,'overhang','Overhang past beam')}
       ${fieldSelect(z,'ply','Perimeter/band ply',[{v:1,t:'Single (1)'},{v:2,t:'Double (2)'}])}
     </div>
     <div class="row">
@@ -1314,7 +1357,7 @@ function renderStep2(){
       ${fieldSelect(z,'beamPly','Beam ply',[{v:2,t:'2-ply'},{v:3,t:'3-ply'}])}
       ${fieldSelect(z,'beamSize','Beam size',[{v:'2x6',t:'2x6'},{v:'2x8',t:'2x8'},{v:'2x10',t:'2x10'},{v:'2x12',t:'2x12'}])}
     </div>
-    ${fieldNum(z,'postHeight','Post height (above footing)','ft')}
+    ${fieldFtIn(z,'postHeight','Post height (above footing)')}
     <h3>Stairs (this zone)</h3>
     <div class="row">
       ${fieldNum(z,'numSteps','Number of steps (risers)','ea')}
@@ -1330,6 +1373,7 @@ function renderStep2(){
     ${fieldYN(z,'pictureFramed','Decking picture-framed?')}
     ${fieldYN(z,'pvcCladding','PVC perimeter cladding?')}
     ${fieldYN(z,'concreteLanding','Concrete landing at stairs?')}
+    ${fieldYN(z,'reuseFooting','Reuse existing footings? (removes new footing form, footing concrete & footings labor for beam/corner posts)')}
   </div>
   <div class="card">
     <h2>Code Check — ${z.name} (AWC DCA6-2015, SYP No. 2)</h2>
