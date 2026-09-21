@@ -155,6 +155,7 @@ function calcBuilding(inp){
   c.pvcCladding = inp.pvcCladding==='Y';      // C24
   c.concreteLanding = inp.concreteLanding==='Y'; // C25
   c.reuseFooting = inp.reuseFooting==='Y'; // reuse existing footings — eliminate new-footing costs
+  c.reuseFraming = inp.reuseFraming==='Y'; // reuse existing framing — eliminate new framing labor/lumber/ledger hardware
 
   const hasLedger = c.ledgerLen>0;
   const hasDepth  = c.deckDepth>0;
@@ -517,7 +518,9 @@ const PRICE = {
     adaBracket: 22.64,       // ADA mounting bracket, white
     jointRing: 3.17,         // hand rail joint ring, white
   },
-  labor: { carpentryPerSF:38, stairCarpentryPerSF:38, footingEa:300, landingEa:300 },
+  // carpentryPerSF ($38/sf) split into framingPerSF + deckingPerSF (2026-09-21, Mike's request:
+  // $12/sf framing, $26/sf decking — sums back to the same $38/sf combined rate as before).
+  labor: { framingPerSF:12, deckingPerSF:26, stairCarpentryPerSF:38, footingEa:300, landingEa:300 },
   salesTaxRate: 0.0625, // MA
   gcDefaults: { dumpster:500, toilet:200, permit:0, management:0 },
 };
@@ -544,39 +547,47 @@ function materialLinesForZone(calc, opts){
   const dk = PRICE.decking[deckingChoice];
   const lines = []; // {label, qty, unit, rate, ext, taxable}
 
-  // Framing lumber
-  for(const sz of Object.keys(calc.framingBoards)){
-    for(const len of [8,12,16]){
-      const qty = calc.framingBoards[sz][len];
-      if(qty>0) pushLine(lines, `PT ${sz}x${len}`, qty, 'ea', PRICE.framingPT[sz][len], true);
+  // Framing lumber (skipped entirely when reusing existing framing)
+  if(!calc.reuseFraming){
+    for(const sz of Object.keys(calc.framingBoards)){
+      for(const len of [8,12,16]){
+        const qty = calc.framingBoards[sz][len];
+        if(qty>0) pushLine(lines, `PT ${sz}x${len}`, qty, 'ea', PRICE.framingPT[sz][len], true);
+      }
     }
   }
   pushLine(lines, 'PT 4x4x12 (stair mid-posts)', calc.midPost4x4Boards, 'ea', PRICE.post4x4_12, true);
   if(calc.postBestLen) pushLine(lines, `PT 6x6x${calc.postBestLen} (posts)`, calc.postBoards, 'ea', xround(PRICE.post6x6PerLF*calc.postBestLen,2), true);
 
-  // Hardware / hangers / connectors
-  pushLine(lines, '2x8 joist hanger', calc.joistSize==='2x8'?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x8, true);
-  pushLine(lines, '2x8 double hanger (concealed)', calc.joistSize==='2x8'?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x8, true);
-  pushLine(lines, '2x10 joist hanger', calc.joistSize==='2x10'?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x10, true);
-  pushLine(lines, '2x10 double hanger (concealed)', calc.joistSize==='2x10'?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x10, true);
-  pushLine(lines, 'Hurricane tie', calc.hurricaneTies, 'ea', PRICE.hardware.hurricaneTie, true);
+  // Hardware / hangers / connectors — joist hangers, hurricane ties, and all ledger-attachment
+  // hardware/consumables below are skipped when reusing existing framing (nothing new to hang or
+  // fasten). Post/footing hardware (6x6 base/cap, ready-base, wedge-all) stays on its own separate
+  // "Reuse existing footings?" toggle, and stair mid-post hardware is unaffected by either toggle.
+  pushLine(lines, '2x8 joist hanger', calc.joistSize==='2x8'&&!calc.reuseFraming?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x8, true);
+  pushLine(lines, '2x8 double hanger (concealed)', calc.joistSize==='2x8'&&!calc.reuseFraming?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x8, true);
+  pushLine(lines, '2x10 joist hanger', calc.joistSize==='2x10'&&!calc.reuseFraming?calc.hangersFieldJoist:0, 'ea', PRICE.hardware.hanger2x10, true);
+  pushLine(lines, '2x10 double hanger (concealed)', calc.joistSize==='2x10'&&!calc.reuseFraming?calc.hangersDoubleBand:0, 'ea', PRICE.hardware.doubleHanger2x10, true);
+  pushLine(lines, 'Hurricane tie', calc.reuseFraming?0:calc.hurricaneTies, 'ea', PRICE.hardware.hurricaneTie, true);
   pushLine(lines, 'Stair hanger', calc.stairHangers, 'ea', PRICE.hardware.stairHanger, true);
   pushLine(lines, '6x6 post base', calc.postBase6x6, 'ea', PRICE.hardware.postBase6x6, true);
   pushLine(lines, '6x6 post cap', calc.postCap6x6, 'ea', PRICE.hardware.postCap6x6, true);
   pushLine(lines, '4x4 post base (stair mid-post)', calc.midPostBase4x4, 'ea', PRICE.hardware.postBase4x4, true);
   pushLine(lines, '4x4 post cap (stair mid-post)', calc.midPostCap4x4, 'ea', PRICE.hardware.postCap4x4, true);
   pushLine(lines, 'Ready-base footing form', calc.readyBase, 'ea', PRICE.hardware.readyBase, true);
-  pushLine(lines, 'Tension tie kit', calc.tensionTieKits, 'kit', PRICE.hardware.tensionTieKit, true);
-  pushLine(lines, 'DTT2z lateral tie', calc.dtt2z, 'ea', PRICE.hardware.dtt2z, true);
-  pushLine(lines, "LedgerLok box (3-5/8\", 12pk)", Math.max(calc.ledgerLokBoxes>0?1:0, Math.ceil(calc.ledgerLokBoxes)), 'box', PRICE.hardware.ledgerLokBox, true);
+  pushLine(lines, 'Tension tie kit', calc.reuseFraming?0:calc.tensionTieKits, 'kit', PRICE.hardware.tensionTieKit, true);
+  pushLine(lines, 'DTT2z lateral tie', calc.reuseFraming?0:calc.dtt2z, 'ea', PRICE.hardware.dtt2z, true);
+  pushLine(lines, "LedgerLok box (3-5/8\", 12pk)", calc.reuseFraming?0:Math.max(calc.ledgerLokBoxes>0?1:0, Math.ceil(calc.ledgerLokBoxes)), 'box', PRICE.hardware.ledgerLokBox, true);
   pushLine(lines, 'Wedge-All 1/2"x5" (10pk)', roundup(calc.wedgeAll/10,0), 'pk', PRICE.hardware.wedgeAll10pk, true);
   pushLine(lines, 'Misc fasteners allowance', calc.ledgerLen?1:0, 'job', PRICE.hardware.miscFasteners, true);
 
-  // Consumables
-  pushLine(lines, 'Joist tape', calc.joistTapeRolls, 'roll', PRICE.consumables.joistTapeRoll, true);
-  pushLine(lines, 'Vycor Plus (ledger waterproofing)', calc.vycorRolls, 'roll', PRICE.consumables.vycorRoll, true);
-  pushLine(lines, 'Deck ledger flashing', calc.deckLedgerFlash, 'ea', PRICE.consumables.deckLedgerFlash, true);
-  pushLine(lines, '12" copper flashing roll', calc.copperRolls, 'roll', PRICE.consumables.copperRoll, true);
+  // Consumables — joist tape/Vycor/ledger flashing/copper flashing all protect NEW framing/ledger
+  // installation, so they're skipped along with the framing lumber/hardware above when reusing
+  // existing framing. Quikrete stays tied to the separate footings-reuse toggle (already gated
+  // via calc.totalConcrete/quikreteBags upstream).
+  pushLine(lines, 'Joist tape', calc.reuseFraming?0:calc.joistTapeRolls, 'roll', PRICE.consumables.joistTapeRoll, true);
+  pushLine(lines, 'Vycor Plus (ledger waterproofing)', calc.reuseFraming?0:calc.vycorRolls, 'roll', PRICE.consumables.vycorRoll, true);
+  pushLine(lines, 'Deck ledger flashing', calc.reuseFraming?0:calc.deckLedgerFlash, 'ea', PRICE.consumables.deckLedgerFlash, true);
+  pushLine(lines, '12" copper flashing roll', calc.reuseFraming?0:calc.copperRolls, 'roll', PRICE.consumables.copperRoll, true);
   pushLine(lines, 'Quikrete 80# bag', calc.quikreteBags, 'bag', PRICE.consumables.quikreteBag, true);
 
   // PVC perimeter cladding / stair risers
@@ -598,9 +609,13 @@ function materialLinesForZone(calc, opts){
   pushLine(lines, 'Decking screws w/ plugs (SE, box)', calc.screwsWithPlugsBoxes, 'box', dk.screwBox, true);
   if(dk.clipBox) pushLine(lines, 'Concealed deck clips (GV, box)', calc.concealClipsBoxes, 'box', dk.clipBox, true);
 
+  // carpentrySF (decking install labor) always applies — decking still gets installed whether
+  // the framing under it is new or reused. framingSF (framing install labor) is the same deck
+  // footprint but zeroed when reusing existing framing, since there's no new frame to build.
   const carpentrySF = (num(calc.ledgerLen)||0) * (num(calc.deckDepth)||0);
+  const framingSF = calc.reuseFraming ? 0 : carpentrySF;
   const stairSF = (num(calc.numSteps)||0) * ((num(calc.stairWidthIn)||0)/12);
-  return { lines, carpentrySF, stairSF, footingsCount: calc.totalFootingsAll, landingCount: calc.concreteLanding?1:0, total6x6Posts: calc.total6x6Posts };
+  return { lines, carpentrySF, framingSF, stairSF, footingsCount: calc.totalFootingsAll, landingCount: calc.concreteLanding?1:0, total6x6Posts: calc.total6x6Posts };
 }
 
 // Merges every zone's materials/labor into one deck-level PO + adds the
@@ -611,11 +626,11 @@ function materialsForBuilding(zoneCalcs, opts){
   const rl = PRICE.railing[railingChoice];
 
   const rawLines = [];
-  let carpentrySF=0, stairSF=0, footingsCount=0, landingCount=0, total6x6Posts=0;
+  let carpentrySF=0, framingSF=0, stairSF=0, footingsCount=0, landingCount=0, total6x6Posts=0;
   zoneCalcs.forEach(calc=>{
     const z = materialLinesForZone(calc, opts);
     rawLines.push(...z.lines);
-    carpentrySF += z.carpentrySF; stairSF += z.stairSF;
+    carpentrySF += z.carpentrySF; framingSF += z.framingSF; stairSF += z.stairSF;
     footingsCount += z.footingsCount; landingCount += z.landingCount;
     total6x6Posts += z.total6x6Posts;
   });
@@ -682,10 +697,14 @@ function materialsForBuilding(zoneCalcs, opts){
   const materialTax = materialSubtotal * PRICE.salesTaxRate;
   const materialTotal = materialSubtotal + materialTax;
 
-  // Labor — summed across zones, one set of rate-driven line items
+  // Labor — summed across zones, one set of rate-driven line items. Framing and decking labor
+  // are split into separate lines (2026-09-21, Mike's request) so they can be priced/reviewed
+  // independently; framingSF already comes in zeroed per zone when that zone's "Reuse existing
+  // framing?" toggle is Yes, while carpentrySF (decking) still reflects the full deck footprint.
   const laborRates = opts.laborRates || PRICE.labor;
   const laborLines = [];
-  pushLine(laborLines, 'Carpentry (framing + decking)', carpentrySF, 'sf', laborRates.carpentryPerSF, false);
+  pushLine(laborLines, 'Framing labor', framingSF, 'sf', laborRates.framingPerSF, false);
+  pushLine(laborLines, 'Decking labor', carpentrySF, 'sf', laborRates.deckingPerSF, false);
   pushLine(laborLines, 'Stair carpentry', stairSF, 'sf', laborRates.stairCarpentryPerSF, false);
   pushLine(laborLines, 'Footings', footingsCount, 'ea', laborRates.footingEa, false);
   pushLine(laborLines, 'Concrete landing', landingCount, 'ea', laborRates.landingEa, false);
@@ -821,7 +840,7 @@ function excelRowToObj(arr) {
 //   Category 'Material' / 'Labor' / 'Tax' : flat key/value overrides. ItemKey
 //     names the PRICE sub-field it maps to, e.g. 'framing_2x6_12', 'post4x4_12',
 //     'hardware_hurricaneTie', 'consumables_vycorRoll', 'pvc_1x8x18',
-//     'labor_carpentryPerSF', 'ptrail_balusterEa', 'salesTaxRate'.
+//     'labor_framingPerSF', 'labor_deckingPerSF', 'ptrail_balusterEa', 'salesTaxRate'.
 //   Category 'Decking' : one group of rows per product, grouped by Title
 //     (matches the key in PRICE.decking, e.g. "TimberTech Reserve"). ItemKey
 //     '12'/'16'/'20' → UnitCost=SE price, SecondaryCost=GV price for that
@@ -1152,7 +1171,7 @@ function newZone(n){
     dropBeam:'Y', beamPly:2, beamSize:'2x8', postHeight:3, numDecksAtUnit:1,
     numSteps:'', stairWidthIn:48, stairsAtCorner:'N', riserHeight:7.5, treadDepth:11,
     extraStringersCorner:0, pictureFramed:'N', pvcCladding:'N', concreteLanding:'N',
-    reuseFooting:'N',
+    reuseFooting:'N', reuseFraming:'N',
   };
 }
 function newBuilding(n){
@@ -1380,6 +1399,7 @@ function renderStep2(){
     ${fieldYN(z,'pvcCladding','PVC perimeter cladding?')}
     ${fieldYN(z,'concreteLanding','Concrete landing at stairs?')}
     ${fieldYN(z,'reuseFooting','Reuse existing footings? (removes new footing form, footing concrete & footings labor for beam/corner posts)')}
+    ${fieldYN(z,'reuseFraming','Reuse existing framing? (removes new framing lumber, hangers, ties, ledger hardware & framing labor)')}
   </div>
   <div class="card">
     <h2>Code Check — ${z.name} (AWC DCA6-2015, SYP No. 2)</h2>
@@ -1501,11 +1521,14 @@ function renderStep3(){
   <div class="card">
     <h2>Labor Rates <span class="pill">whole job</span></h2>
     <div class="row">
-      <div><label>Carpentry ($/sf)</label><input type="number" id="lab_carp" value="${PRICE.labor.carpentryPerSF}"></div>
-      <div><label>Stair carpentry ($/sf)</label><input type="number" id="lab_stair" value="${PRICE.labor.stairCarpentryPerSF}"></div>
+      <div><label>Framing ($/sf)</label><input type="number" id="lab_framing" value="${PRICE.labor.framingPerSF}"></div>
+      <div><label>Decking ($/sf)</label><input type="number" id="lab_decking" value="${PRICE.labor.deckingPerSF}"></div>
     </div>
     <div class="row">
+      <div><label>Stair carpentry ($/sf)</label><input type="number" id="lab_stair" value="${PRICE.labor.stairCarpentryPerSF}"></div>
       <div><label>Footings ($/ea)</label><input type="number" id="lab_footing" value="${PRICE.labor.footingEa}"></div>
+    </div>
+    <div class="row">
       <div><label>Landing ($/ea)</label><input type="number" id="lab_landing" value="${PRICE.labor.landingEa}"></div>
     </div>
   </div>
@@ -1530,7 +1553,8 @@ function wireStep3(){
   bindNum('gc_toilet', v=>state.gc.toilet=v);
   bindNum('gc_permit', v=>state.gc.permit=v);
   bindNum('gc_management', v=>state.gc.management=v);
-  bindNum('lab_carp', v=>PRICE.labor.carpentryPerSF=parseFloat(v)||0);
+  bindNum('lab_framing', v=>PRICE.labor.framingPerSF=parseFloat(v)||0);
+  bindNum('lab_decking', v=>PRICE.labor.deckingPerSF=parseFloat(v)||0);
   bindNum('lab_stair', v=>PRICE.labor.stairCarpentryPerSF=parseFloat(v)||0);
   bindNum('lab_footing', v=>PRICE.labor.footingEa=parseFloat(v)||0);
   bindNum('lab_landing', v=>PRICE.labor.landingEa=parseFloat(v)||0);
