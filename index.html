@@ -60,6 +60,43 @@ select.margin-select{max-width:120px;}
 .od-action{font-size:.68rem;color:#6fa8ff;font-weight:600;cursor:pointer;margin-top:2px;user-select:none;}
 .od-action:active{opacity:0.7;}
 #spStatus{font-size:.72rem;margin-top:8px;}
+
+/* ==========================================================================
+   SCREEN SIZES
+   Phones keep the layout they were built for. Wider screens use more of
+   their width through media queries rather than a JS screen measurement,
+   so rotating a tablet, dragging a window or splitting the screen all
+   re-lay out correctly instead of leaving a stale one-off layout behind.
+   ========================================================================== */
+#liveTotal{display:none;}
+#liveTotal.lt-off{display:none!important;}
+
+@media (min-width: 700px){
+  main{max-width:860px;padding:16px 16px 90px;}
+}
+
+@media (min-width: 1100px){
+  .shell{
+    max-width:1180px;margin:0 auto;display:grid;
+    grid-template-columns:minmax(0,1fr) 300px;gap:0 24px;align-items:start;
+    padding:0 16px;
+  }
+  main{max-width:none;margin:0;padding:16px 0 90px;}
+  #liveTotal{
+    display:block;position:sticky;top:16px;margin-top:16px;
+    background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;
+  }
+  .lt-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+  .lt-price{font-size:1.75rem;font-weight:700;margin-top:6px;color:var(--dark);}
+  .lt-sub{font-size:.72rem;color:var(--muted);margin-top:4px;}
+  .lt-rows{margin-top:14px;border-top:1px solid var(--border);padding-top:10px;}
+  .lt-rows .lt-row{display:flex;justify-content:space-between;gap:12px;font-size:.76rem;padding:3px 0;color:var(--muted);}
+  .lt-rows .lt-row b{color:var(--dark);font-weight:600;}
+}
+
+@media (min-width: 1500px){
+  .shell{max-width:1360px;grid-template-columns:minmax(0,1fr) 320px;}
+}
 </style>
 <header>
   <h1>KPS Deck Estimator</h1>
@@ -68,7 +105,15 @@ select.margin-select{max-width:120px;}
   <div class="od-action" id="odAction" onclick="connectKPSPricing()">Connect to KPS Pricing →</div>
 </header>
 <div class="steps" id="stepNav"></div>
+<div class="shell">
 <main id="app"></main>
+<aside id="liveTotal" aria-live="polite">
+  <div class="lt-label">Running total</div>
+  <div class="lt-price" id="ltPrice">&mdash;</div>
+  <div class="lt-sub" id="ltSub">Enter deck measurements to see a price</div>
+  <div class="lt-rows" id="ltRows"></div>
+</aside>
+</div>
 
 <!-- KPS App Suite shared sign-in — used to sync live pricing from the KPS Pricing SharePoint list -->
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
@@ -1794,6 +1839,42 @@ function render(){
   else wireStep4();
   const back=document.getElementById('navBack'); if(back) back.addEventListener('click',()=>{state.step--; render();});
   const next=document.getElementById('navNext'); if(next) next.addEventListener('click',()=>{state.step++; render();});
+  updateLiveTotal();
+}
+
+// Running total for the side panel shown on computer-sized screens. Cheap
+// enough to recompute on every render; the element simply isn't visible at
+// narrower widths.
+function updateLiveTotal(){
+  const price = document.getElementById('ltPrice');
+  if(!price) return;
+  // Step 4 IS the summary — a panel repeating it beside it is just noise.
+  const panel = document.getElementById('liveTotal');
+  if(panel) panel.classList.toggle('lt-off', state.step === 4);
+  const sub = document.getElementById('ltSub'), rows = document.getElementById('ltRows');
+  let results, job;
+  try{
+    results = computeAll();
+    job = aggregateJob(results, state.gc, state.marginPct, state.contingencyPct, state.manualSell);
+  }catch(e){ return; }
+  if(!job || !(job.sell > 0)){
+    price.textContent = '—';
+    if(sub) sub.textContent = 'Enter deck measurements to see a price';
+    if(rows) rows.innerHTML = '';
+    return;
+  }
+  price.textContent = money(job.sell);
+  const nb = state.buildings.length;
+  if(sub) sub.textContent = `${nb} deck${nb===1?'':'s'} · ${state.marginPct}% margin`;
+  if(!rows) return;
+  const line = (k,v)=>`<div class="lt-row"><span>${k}</span><b>${v}</b></div>`;
+  rows.innerHTML =
+      line('Materials', money(job.vendors))
+    + line('Labor', money(job.labor))
+    + line('General conditions', money(job.general))
+    + (job.contingency ? line('Contingency', money(job.contingency)) : '')
+    + line('Cost of goods', money(job.cogs))
+    + line('Gross profit', money(job.profit));
 }
 render();
 initKPSPricing();
