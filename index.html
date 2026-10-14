@@ -1,119 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>KPS Deck Estimator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root{--blue:#0b5ed7;--dark:#13233c;--bg:#f4f6f9;--card:#fff;--border:#d9e0ea;--good:#1a7d3c;--bad:#c22b2b;--muted:#5c6b7f;}
-*{box-sizing:border-box;}
-body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--dark);}
-header{background:var(--dark);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:50;}
-header h1{margin:0;font-size:1.05rem;}
-header .sub{font-size:.72rem;color:#9db3cf;margin-top:2px;}
-.steps{display:flex;background:#0e1c31;font-size:.68rem;}
-.steps div{flex:1;text-align:center;padding:7px 2px;color:#7c90ab;border-bottom:3px solid transparent;}
-.steps div.active{color:#fff;border-color:var(--blue);font-weight:600;}
-.steps div.done{color:#bcd0e8;}
-main{max-width:760px;margin:0 auto;padding:14px 12px 90px;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
-.card h2{font-size:.95rem;margin:0 0 10px;color:var(--dark);}
-.card h3{font-size:.82rem;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
-label{display:block;font-size:.76rem;color:var(--muted);margin:8px 0 3px;}
-input[type=text],input[type=number],select{width:100%;padding:9px 8px;border:1px solid var(--border);border-radius:7px;font-size:.9rem;background:#fff;}
-input:focus,select:focus{outline:2px solid var(--blue);}
-.row{display:flex;gap:8px;}
-.row>div{flex:1;min-width:0;}
-.yn{display:flex;gap:6px;}
-.yn button{flex:1;padding:8px;border:1px solid var(--border);background:#fff;border-radius:7px;font-size:.82rem;cursor:pointer;}
-.yn button.sel{background:var(--blue);color:#fff;border-color:var(--blue);}
-.btnrow{display:flex;gap:8px;margin-top:14px;}
-.btn{flex:1;padding:12px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;}
-.btn.primary{background:var(--blue);color:#fff;}
-.btn.ghost{background:#fff;border:1px solid var(--border);color:var(--dark);}
-.btn.sm{padding:7px 10px;font-size:.78rem;font-weight:500;}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700;}
-.badge.pass{background:#e4f6ea;color:var(--good);}
-.badge.fail{background:#fbe7e7;color:var(--bad);}
-.badge.na{background:#eee;color:#777;}
-.check-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed #eee;font-size:.8rem;}
-.check-row:last-child{border-bottom:none;}
-.buildingTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.buildingTabs button{padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:.76rem;cursor:pointer;}
-.buildingTabs button.sel{background:var(--dark);color:#fff;}
-table.matx{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:6px;}
-table.matx th,table.matx td{padding:5px 4px;border-bottom:1px solid #eee;text-align:left;}
-table.matx th{color:var(--muted);font-weight:600;font-size:.7rem;text-transform:uppercase;}
-table.matx td.num{text-align:right;font-variant-numeric:tabular-nums;}
-.acc{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;}
-.acc-h{padding:10px 12px;background:#fafbfd;cursor:pointer;font-weight:600;font-size:.85rem;display:flex;justify-content:space-between;}
-.acc-b{padding:0 12px 12px;display:none;}
-.acc.open .acc-b{display:block;}
-.acc.open .chev{transform:rotate(90deg);}
-.chev{transition:transform .15s;}
-.totline{display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;}
-.totline.big{font-size:1.05rem;font-weight:700;border-top:2px solid var(--dark);margin-top:6px;padding-top:8px;}
-.pill{font-size:.68rem;background:#eef2f8;color:var(--muted);padding:2px 7px;border-radius:10px;}
-.note{font-size:.72rem;color:var(--muted);margin-top:4px;}
-.hidden{display:none!important;}
-select.margin-select{max-width:120px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.od-text{font-size:.68rem;color:rgba(255,255,255,0.6);margin-top:8px;}
-.od-text strong{color:#fff;}
-.od-text.warn strong{color:#e9a24d;}
-.od-action{font-size:.68rem;color:#6fa8ff;font-weight:600;cursor:pointer;margin-top:2px;user-select:none;}
-.od-action:active{opacity:0.7;}
-#spStatus{font-size:.72rem;margin-top:8px;}
-
-/* ==========================================================================
-   SCREEN SIZES
-   Phones keep the layout they were built for. Wider screens use more of
-   their width through media queries rather than a JS screen measurement,
-   so rotating a tablet, dragging a window or splitting the screen all
-   re-lay out correctly instead of leaving a stale one-off layout behind.
-   ========================================================================== */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0ede8;min-height:100vh;color:#1a1a1a;}
+.app{max-width:440px;margin:0 auto;padding-bottom:5rem;}
 #liveTotal{display:none;}
 #liveTotal.lt-off{display:none!important;}
+.hidden{display:none!important;}
 
+/* HEADER */
+.hdr{background:#1a1a2e;color:#fff;padding:1.25rem 1.25rem 1rem;position:sticky;top:0;z-index:100;}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;}
+.hdr h1{font-size:17px;font-weight:600;letter-spacing:-0.3px;}
+.hdr p{font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px;}
+.steps{display:flex;gap:5px;margin-top:10px;}
+.step{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.15);transition:background 0.3s;}
+.step.done{background:rgba(255,255,255,0.5);}
+.step.active{background:#e97132;}
+.od-text{font-size:11px;color:rgba(255,255,255,0.55);margin-top:9px;}
+.od-text strong{color:#fff;}
+.od-text.warn strong{color:#e9a24d;}
+.od-action{font-size:11px;color:#e97132;font-weight:600;cursor:pointer;margin-top:2px;user-select:none;}
+.od-action:active{opacity:0.7;}
+.sf-row{display:flex;gap:8px;margin-top:10px;}
+.sf-btn{flex:1;text-align:center;font-size:11px;font-weight:600;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:7px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;}
+.sf-btn:active{background:rgba(255,255,255,0.22);}
+
+/* CARDS */
+.card{background:#fff;border-radius:14px;padding:1.125rem 1.25rem;margin:0.875rem 0.875rem 0;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.card h2{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:0.875rem;}
+.card h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#888;margin:1.125rem 0 0.625rem;padding-top:0.875rem;border-top:1px solid #f0ede8;}
+.card h2 + h3,.card .note + h3:first-child{border-top:none;padding-top:0;}
+
+/* FIELDS */
+main label{font-size:13px;color:#555;display:block;margin:0 0 5px;}
+main input[type=text],main input[type=number],main input[type=tel],main input[type=email],main select{width:100%;padding:10px 12px;font-size:15px;border:1px solid #e0ddd8;border-radius:10px;background:#faf9f7;color:#1a1a1a;-webkit-appearance:none;appearance:none;font-family:inherit;}
+main select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' fill='none' stroke='%23888' stroke-width='1.6' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+main input[type=file]{width:100%;font-size:13px;color:#555;padding:8px 0;}
+main input:focus,main select:focus{outline:none;border-color:#e97132;background-color:#fff;box-shadow:0 0 0 3px rgba(233,113,50,0.1);}
+main input::placeholder{color:#b5b1a8;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
+.row>div{min-width:0;margin-bottom:0.75rem;}
+.card>div:not(.row):not(.note):not(.buildingTabs):not(.btnrow){margin-bottom:0.75rem;}
+.card>:last-child,.card>.row:last-child>div{margin-bottom:0;}
+.row.ftin-row{grid-template-columns:1fr 1fr;}
+.ftin{display:flex;gap:6px;align-items:center;}
+.ftin .note{margin:0;}
+.hint{font-size:11px;color:#8a8578;margin-top:4px;line-height:1.45;}
+
+/* TOGGLES — the old Yes/No buttons and deck/zone tabs now use the roofing pill look */
+.yn{display:flex;flex-wrap:wrap;gap:7px;}
+.yn button,.buildingTabs button{padding:7px 14px;font-size:13px;border:1px solid #e0ddd8;border-radius:20px;cursor:pointer;background:#faf9f7;color:#555;transition:all 0.15s;user-select:none;-webkit-user-select:none;font-family:inherit;}
+.yn button{min-width:64px;}
+.yn button.sel,.buildingTabs button.sel{background:#1a1a2e;color:#fff;border-color:#1a1a2e;}
+.buildingTabs{display:flex;flex-wrap:wrap;gap:7px;margin:0.875rem 0.875rem 0;}
+.card .buildingTabs{margin:0 0 0.875rem;}
+
+/* BUTTONS */
+.btnrow{display:flex;gap:8px;margin-top:0.875rem;}
+.btn{flex:1;padding:12px;border-radius:12px;border:1px solid #e0ddd8;background:#fff;color:#555;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.btn:active{background:#f0ede8;}
+.btn.sm{padding:9px 10px;font-size:13px;font-weight:500;}
+.btn.primary{background:#e97132;border-color:#e97132;color:#fff;}
+.btn.primary:active{background:#d3621f;}
+.btn-main{display:block;width:calc(100% - 1.75rem);margin:1rem 0.875rem 0;padding:15px;background:#e97132;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;letter-spacing:-0.2px;transition:all 0.15s;font-family:inherit;}
+.btn-main:active{transform:scale(0.98);}
+.btn-back{display:block;width:calc(100% - 1.75rem);margin:0.625rem 0.875rem 0;padding:13px;background:#fff;color:#555;border:1px solid #e0ddd8;border-radius:14px;font-size:15px;cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.btn-back:active{background:#f0ede8;}
+.btn-tax{display:block;width:100%;margin-top:0.625rem;padding:13px;background:#fff;color:#e97132;border:1.5px solid #e97132;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:center;font-family:inherit;}
+.btn-tax:active{opacity:0.85;}
+.note{font-size:11px;color:#8a8578;margin-top:6px;line-height:1.5;}
+.card>.note{margin:0.25rem 0 0.75rem;}
+
+/* PASS / FAIL */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge.pass{background:#e4f3ea;color:#1d7a46;}
+.badge.fail{background:#fbe7e7;color:#c22b2b;}
+.badge.na{background:#f0ede8;color:#8a8578;}
+.check-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0ede8;font-size:13px;color:#1a1a2e;}
+.check-row:last-child{border-bottom:none;}
+.check-row .note{margin-top:2px;color:#aaa;}
+.pill{font-size:10px;background:#f0ede8;color:#8a8578;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;font-weight:500;margin-left:4px;}
+
+/* TABLES */
+table.matx{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+table.matx th,table.matx td{padding:7px 4px;border-bottom:1px solid #f0ede8;text-align:left;color:#1a1a2e;vertical-align:top;}
+table.matx th{color:#888;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.6px;}
+table.matx td.num,table.matx th.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* SUMMARY */
+.sum-card{background:#1a1a2e;border-radius:16px;padding:1.5rem;margin:0.875rem 0.875rem 0;color:#fff;}
+.sum-label{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;}
+.sum-price{font-size:42px;font-weight:700;letter-spacing:-2px;margin:4px 0 2px;color:#fff;}
+.sum-sub{font-size:12px;color:rgba(255,255,255,0.45);}
+.sum-divider{border:none;border-top:1px solid rgba(255,255,255,0.1);margin:1rem 0;}
+.sum-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:5px;}
+.sum-row.bold{color:#fff;font-weight:600;font-size:14px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.1);margin-top:5px;}
+.sum-row .acc{color:#e97132;}
+
+/* ACCORDION CARDS (per-deck detail on the Summary page) */
+.acc-header{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.acc-header .acc-chevron{font-size:10px;color:#aaa;transition:transform 0.15s;flex-shrink:0;}
+.acc-card.open .acc-header .acc-chevron{transform:rotate(90deg);}
+.acc-header h2{margin-bottom:0!important;flex:1;}
+.acc-preview{font-size:14px;font-weight:600;color:#e97132;white-space:nowrap;}
+.acc-body{display:none;margin-top:0.875rem;}
+.acc-card.open .acc-body{display:block;}
+.totline{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#555;}
+.totline.big{font-size:15px;font-weight:700;color:#1a1a2e;border-top:1px solid #f0ede8;margin-top:6px;padding-top:10px;}
+#spStatus{font-size:11px;margin-top:8px;}
+
+/* REP-ONLY */
+.sf-btn.on{background:#e97132;border-color:#e97132;}
+.repcard{border:1.5px dashed #e97132;}
+.repcard h2 .pill{background:#fde8db;color:#a8481a;}
+.repbanner{margin:0.875rem 0.875rem 0;padding:9px 12px;border-radius:12px;background:#fff8e6;border:1px dashed #d9a441;font-size:12px;color:#5b4310;}
+.scope-list{list-style:none;}
+.scope-list li{font-size:13px;color:#1a1a2e;padding:7px 0 7px 22px;position:relative;border-bottom:1px solid #f0ede8;line-height:1.4;}
+.scope-list li:last-child{border-bottom:none;}
+.scope-list li::before{content:'✓';position:absolute;left:0;top:7px;color:#1d7a46;font-weight:700;}
+
+/* SKETCH */
+.sketch-img{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid #e0ddd8;}
+
+/* SCREEN SIZES — phones keep the single column; wider screens use their
+   width via media queries (same breakpoints as the Roofing Estimator). */
 @media (min-width: 700px){
-  main{max-width:860px;padding:16px 16px 90px;}
+  .app{max-width:860px;}
 }
-
 @media (min-width: 1100px){
-  .shell{
-    max-width:1180px;margin:0 auto;display:grid;
-    grid-template-columns:minmax(0,1fr) 300px;gap:0 24px;align-items:start;
-    padding:0 16px;
-  }
-  main{max-width:none;margin:0;padding:16px 0 90px;}
+  .app{max-width:1180px;display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:26px;align-items:start;}
+  .hdr{grid-column:1 / -1;}
+  main{grid-column:1;min-width:0;}
   #liveTotal{
-    display:block;position:sticky;top:16px;margin-top:16px;
-    background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;
+    display:block;grid-column:2;position:sticky;top:118px;background:#fff;border-radius:14px;
+    padding:1.125rem 1.25rem;margin-top:0.875rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);
   }
-  .lt-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
-  .lt-price{font-size:1.75rem;font-weight:700;margin-top:6px;color:var(--dark);}
-  .lt-sub{font-size:.72rem;color:var(--muted);margin-top:4px;}
-  .lt-rows{margin-top:14px;border-top:1px solid var(--border);padding-top:10px;}
-  .lt-rows .lt-row{display:flex;justify-content:space-between;gap:12px;font-size:.76rem;padding:3px 0;color:var(--muted);}
-  .lt-rows .lt-row b{color:var(--dark);font-weight:600;}
+  .lt-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#888;}
+  .lt-price{font-size:30px;font-weight:700;letter-spacing:-0.5px;margin-top:6px;color:#1a1a2e;}
+  .lt-sub{font-size:12px;color:#888;margin-top:4px;}
+  .lt-rows{margin-top:14px;border-top:1px solid #eee;padding-top:12px;}
+  .lt-rows .lt-row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;color:#555;}
+  .lt-rows .lt-row b{color:#1a1a1a;font-weight:600;}
 }
-
 @media (min-width: 1500px){
-  .shell{max-width:1360px;grid-template-columns:minmax(0,1fr) 320px;}
+  .app{max-width:1400px;grid-template-columns:minmax(0,1fr) 320px;}
 }
 </style>
-<header>
-  <h1>KPS Deck Estimator</h1>
-  <div class="sub">DCA6-2015 code-checked framing &amp; PO takeoff</div>
-  <div class="od-text" id="odText">Prices: <strong>built-in defaults</strong></div>
-  <div class="od-action" id="odAction" onclick="connectKPSPricing()">Connect to KPS Pricing →</div>
-</header>
-<div class="steps" id="stepNav"></div>
-<div class="shell">
-<main id="app"></main>
-<aside id="liveTotal" aria-live="polite">
-  <div class="lt-label">Running total</div>
-  <div class="lt-price" id="ltPrice">&mdash;</div>
-  <div class="lt-sub" id="ltSub">Enter deck measurements to see a price</div>
-  <div class="lt-rows" id="ltRows"></div>
-</aside>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div><h1>KPS Deck Estimator</h1><p>Kelly's Property Services</p></div>
+      <div id="pageLabel" style="font-size:11px;color:rgba(255,255,255,0.4);">Step 1 of 4</div>
+    </div>
+    <div class="steps" id="stepNav"></div>
+    <div class="od-text" id="odText">Prices: <strong>built-in defaults</strong></div>
+    <div class="od-action" id="odAction" onclick="connectKPSPricing()">Connect to KPS Pricing →</div>
+    <div class="sf-row">
+      <div class="sf-btn" onclick="saveProjectFile()">💾 Save</div>
+      <div class="sf-btn" onclick="document.getElementById('openFileInput').click()">📂 Open</div>
+      <div class="sf-btn" id="repBtn" onclick="toggleRepView()">🔒 Show pricing</div>
+      <input type="file" id="openFileInput" accept=".json,application/json" style="display:none" onchange="handleOpenFileSelected(event)"/>
+    </div>
+  </div>
+  <main id="app"></main>
+  <aside id="liveTotal" aria-live="polite">
+    <div class="lt-label">Running total</div>
+    <div class="lt-price" id="ltPrice">&mdash;</div>
+    <div class="lt-sub" id="ltSub">Enter deck measurements to see a price</div>
+    <div class="lt-rows" id="ltRows"></div>
+  </aside>
 </div>
+
 
 <!-- KPS App Suite shared sign-in — used to sync live pricing from the KPS Pricing SharePoint list -->
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
@@ -199,7 +263,10 @@ function calcBuilding(inp){
   c.pictureFramed = inp.pictureFramed==='Y'; // C23
   c.pvcCladding = inp.pvcCladding==='Y';      // C24
   c.concreteLanding = inp.concreteLanding==='Y'; // C25
-  c.reuseFooting = inp.reuseFooting==='Y'; // reuse existing footings — eliminate new-footing costs
+  // Footings: 'new' (default) | 'reuse' (existing footings stay, new posts still go on them) | 'none' (attached to the building — no beam posts or footings at all)
+  c.footingMode = inp.footingMode || (inp.reuseFooting==='Y' ? 'reuse' : 'new');
+  c.reuseFooting = c.footingMode==='reuse'; // reuse existing footings — eliminate new-footing costs
+  c.noSupports = c.footingMode==='none';
   c.reuseFraming = inp.reuseFraming==='Y'; // reuse existing framing — eliminate new framing labor/lumber/ledger hardware
 
   const hasLedger = c.ledgerLen>0;
@@ -218,9 +285,9 @@ function calcBuilding(inp){
   c.joistBracketT3A = c.dropBeam ? Math.min(18, bracket(c.joistSpanL,18)) : ''; // C34
   c.allowBeamSpan = c.dropBeam ? ((TABLE3A[c.beamBuildup]||{})[c.joistBracketT3A]||0) : 0; // C35
   c.beamLength = c.dropBeam ? c.ledgerLen : 0; // C36
-  c.postsRequired = (!c.dropBeam || c.allowBeamSpan===0) ? 0 : Math.max(2, roundup(c.beamLength/c.allowBeamSpan,0)+1); // C37 (min 2 footings under a drop beam)
+  c.postsRequired = (!c.dropBeam || c.allowBeamSpan===0 || c.noSupports) ? 0 : Math.max(2, roundup(c.beamLength/c.allowBeamSpan,0)+1); // C37 (min 2 footings under a drop beam)
   c.postSpacing = c.postsRequired<2 ? 0 : c.beamLength/(c.postsRequired-1); // C38
-  c.beamSpanCheck = !c.dropBeam ? 'n/a' : (c.postSpacing<=c.allowBeamSpan?'PASS':'FAIL'); // C39
+  c.beamSpanCheck = (!c.dropBeam || c.noSupports) ? 'n/a' : (c.postSpacing<=c.allowBeamSpan?'PASS':'FAIL'); // C39
   c.beamBracketT4 = c.dropBeam ? bracket(c.postSpacing,18) : ''; // C40
   c.joistBracketT4 = c.dropBeam ? (c.joistSpanL<=10?10:(c.joistSpanL<=14?14:18)) : ''; // C41
   const t4 = c.dropBeam ? ((TABLE4[c.beamBracketT4]||{})[c.joistBracketT4]) : null;
@@ -259,7 +326,7 @@ function calcBuilding(inp){
 
   // ---- 6x6 POSTS ----
   c.beamPosts = c.postsRequired; // C77
-  c.cornerLandingPost = (c.stairsAtCorner && hasStairs) ? 1 : 0; // C78
+  c.cornerLandingPost = (c.stairsAtCorner && hasStairs && !c.noSupports) ? 1 : 0; // C78
   c.total6x6Posts = c.beamPosts + c.cornerLandingPost; // C79
   c.postPieceLen = c.postHeight||0; // C80
   const postStock=[8,10,12,16].map(L=>({L, lf:(c.postPieceLen===0||c.postPieceLen>L)?9999:roundup(c.total6x6Posts/Math.floor(L/c.postPieceLen),0)*L}));
@@ -408,18 +475,18 @@ function calcBuilding(inp){
   c.landingProjection = 2.5; c.landingThickness = 8; // C262/263
   c.concreteLandingPad = c.concreteLanding? (c.landingWidth/12)*c.landingProjection*(c.landingThickness/12) : 0; // C264
   c.totalConcrete = (c.reuseFooting ? 0 : (c.beamPosts*c.concretePerBeamPier + c.cornerLandingPost*c.concretePerOther6x6Footing)) + c.midPostsReq*c.concretePer4x4StairFooting + c.concreteLandingPad; // C257 (skip beam/corner footing concrete when reusing existing footings)
-  c.bearingCheck = (c.footingDia===0||c.pierDia===0)?'n/a':(c.pierDia>=c.footingDia?'PASS':'REVIEW - pier narrower than Table 4'); // C258
+  c.bearingCheck = (c.noSupports||c.footingDia===0||c.pierDia===0)?'n/a':(c.pierDia>=c.footingDia?'PASS':'REVIEW - pier narrower than Table 4'); // C258
   c.quikreteBags = roundup(c.totalConcrete/0.6,0); // C155
 
   c.checks = [
     {label:'Joist span', value:c.joistSpanCheck, detail:`${round1(c.joistSpanL)} ft actual vs ${round1(c.allowJoistSpan)} ft allowed`},
     {label:'Overhang', value:c.overhangCheck, detail:`${round1(c.overhang)} ft actual vs ${round1(c.maxCantilever)} ft max`},
-    {label:'Beam span', value:c.beamSpanCheck, detail: c.dropBeam? `${round1(c.postSpacing)} ft o.c. vs ${round1(c.allowBeamSpan)} ft allowed`:'no drop beam'},
+    {label:'Beam span', value:c.beamSpanCheck, detail: c.noSupports ? 'no posts — attached to building' : (c.dropBeam? `${round1(c.postSpacing)} ft o.c. vs ${round1(c.allowBeamSpan)} ft allowed`:'no drop beam')},
     {label:'Post height', value:c.postHtCheck, detail: c.dropBeam? `${round1(c.postHeight)} ft actual vs ${round1(c.maxPostHt)} ft max`:'no drop beam'},
     {label:'Riser height (IRC max 7.75")', value:c.riserCheck, detail:`${c.riserHeight}"`},
     {label:'Tread depth (IRC min 10")', value:c.treadCheck, detail:`${c.treadDepth}"`},
     {label:'Stringer stock length', value:c.stringerFitCheck, detail:`${round1(c.stringerSlopeLen)} ft slope length`},
-    {label:'Footing bearing vs Table 4', value:c.bearingCheck, detail: c.dropBeam? `${c.pierDia}in pier vs ${c.footingDia}in required`:'n/a'},
+    {label:'Footing bearing vs Table 4', value:c.bearingCheck, detail: (c.dropBeam && !c.noSupports)? `${c.pierDia}in pier vs ${c.footingDia}in required`:'n/a'},
   ];
   return c;
 }
@@ -568,6 +635,9 @@ const PRICE = {
   labor: { framingPerSF:12, deckingPerSF:26, stairCarpentryPerSF:38, footingEa:300, landingEa:300 },
   salesTaxRate: 0.0625, // MA
   gcDefaults: { dumpster:500, toilet:200, permit:0, management:0 },
+  // General-conditions RATES (rep-only; also syncable from the pricing sheet as gc_dumpsterPer300SF / gc_mgmtPerDay):
+  // one dumpster per 300 sf of deck area (rounded up), project management billed per work day.
+  gc: { dumpsterPer300SF:500, dumpsterSF:300, mgmtPerDay:300 },
 };
 // Frozen snapshot of the built-in prices above, taken before anything can sync
 // over them — the source of truth to merge fetched rows onto, and what PRICE
@@ -755,14 +825,32 @@ function materialsForBuilding(zoneCalcs, opts){
   pushLine(laborLines, 'Concrete landing', landingCount, 'ea', laborRates.landingEa, false);
   const laborTotal = laborLines.reduce((s,l)=>s+l.ext,0);
 
-  return { lines, materialSubtotal, materialTax, materialTotal, laborLines, laborTotal };
+  return { lines, materialSubtotal, materialTax, materialTotal, laborLines, laborTotal, deckSF: carpentrySF };
 }
 
 // Aggregates one or more decks + job-wide general conditions/margin.
+// General conditions: dumpster = one per 300 sf of total deck area (rounded UP, $500 each);
+// project management = work days x $300/day. Either can be overridden by a rep (blank = automatic).
+function effectiveGC(buildingResults, gc){
+  const totalSF = buildingResults.reduce((s,b)=>s+(b.mat.deckSF||0),0);
+  const g = PRICE.gc;
+  const dumpsterAuto = totalSF>0 ? Math.ceil(totalSF/g.dumpsterSF - 1e-9)*g.dumpsterPer300SF : 0;
+  const days = num(gc.workDays)||0;
+  const mgmtAuto = days*g.mgmtPerDay;
+  const has = v => v!=='' && v!=null && !isNaN(parseFloat(v));
+  return {
+    totalSF, days, dumpsterAuto, mgmtAuto,
+    dumpster: has(gc.dumpsterOverride) ? parseFloat(gc.dumpsterOverride) : dumpsterAuto,
+    management: has(gc.mgmtOverride) ? parseFloat(gc.mgmtOverride) : mgmtAuto,
+    toilet: num(gc.toilet)||0, permit: num(gc.permit)||0,
+  };
+}
+
 function aggregateJob(buildingResults, gc, marginPct, contingencyPct, manualSell){
   const vendors = buildingResults.reduce((s,b)=>s+b.mat.materialTotal,0);
   const labor = buildingResults.reduce((s,b)=>s+b.mat.laborTotal,0);
-  const general = (num(gc.dumpster)||0)+(num(gc.toilet)||0)+(num(gc.permit)||0)+(num(gc.management)||0);
+  const eg = effectiveGC(buildingResults, gc);
+  const general = eg.dumpster + eg.toilet + eg.permit + eg.management;
   const contingency = (vendors+labor+general) * ((num(contingencyPct)||0)/100);
   const cogs = general + vendors + labor + contingency;
   const margin = (num(marginPct)||0)/100;
@@ -770,7 +858,7 @@ function aggregateJob(buildingResults, gc, marginPct, contingencyPct, manualSell
   const sell = (manualSell!==undefined && manualSell!=='' && manualSell!=null) ? num(manualSell) : priceAtMargin;
   const profit = sell - cogs;
   const gm = sell>0 ? profit/sell : 0;
-  return { vendors, labor, general, contingency, cogs, priceAtMargin, sell, profit, gm };
+  return { vendors, labor, general, contingency, cogs, priceAtMargin, sell, profit, gm, gcDetail: eg };
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗
@@ -984,6 +1072,7 @@ function applyDeckPricing(built) {
   PRICE.consumables = flatMerge(DEFAULT_PRICE.consumables, 'consumables');
   PRICE.pvc = flatMerge(DEFAULT_PRICE.pvc, 'pvc');
   PRICE.labor = flatMerge(DEFAULT_PRICE.labor, 'labor');
+  PRICE.gc = flatMerge(DEFAULT_PRICE.gc, 'gc');
   // balustersPerFt / drinkRailBoardLen are physical constants (not $ prices),
   // not tracked in the pricing sheet — always stay hardcoded, same treatment
   // roofing gives PVC/flat-roof coverage rates.
@@ -1220,13 +1309,13 @@ function newZone(n){
     dropBeam:'Y', beamPly:2, beamSize:'2x8', postHeight:3, numDecksAtUnit:1,
     numSteps:'', stairWidthIn:48, stairsAtCorner:'N', riserHeight:7.5, treadDepth:11,
     extraStringersCorner:0, pictureFramed:'N', pvcCladding:'N', concreteLanding:'N',
-    reuseFooting:'N', reuseFraming:'N',
+    footingMode:'new', reuseFraming:'N',
   };
 }
 function newBuilding(n){
   return {
     name: `Deck ${n}`,
-    zones:[newZone(1)], curZone:0,
+    zones:[newZone(1)], curZone:0, oddShape:'N',
     sketchImage:null, sketchName:'',
     deckingBrand:'PT 5/4x6', deckingColor:'', railingSystem:'none', railPanelsLevel:0, railPanelsSloped:0,
     railPosts:'', postWidth:'4', sleeveSize:'39', railLFLevel:0, railLFSloped:0, ptDrinkRail:'N',
@@ -1237,13 +1326,16 @@ function newBuilding(n){
 
 const state = {
   step:1, curBldg:0,
-  projectId:'', property:'', contact:'', pm:'',
+  projectId:'', property:'', address:'', city:'', st:'MA', contact:'', phone:'', email:'', pm:'',
   buildings:[newBuilding(1)],
-  gc:{dumpster:500, toilet:200, permit:0, management:0},
+  gc:{workDays:'', dumpsterOverride:'', mgmtOverride:'', toilet:200, permit:0},
+  repView:false, // Rep-only pricing view — OFF by default so a customer watching never sees costs/margin
   marginPct:30, contingencyPct:1.5, manualSell:'',
 };
 
-const STEP_LABELS = ['Project Info','Deck Measurements','Materials & Margin','Summary'];
+const STEP_LABELS = ['Project Info','Deck Measurements','Materials & Options','Summary'];
+
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function computeAll(){
   return state.buildings.map(b=>{
@@ -1253,13 +1345,26 @@ function computeAll(){
   });
 }
 
+function toggleRepView(){
+  state.repView = !state.repView;
+  render();
+}
+function updateRepBtn(){
+  const b = document.getElementById('repBtn'); if(!b) return;
+  b.textContent = state.repView ? '🔓 Hide pricing' : '🔒 Show pricing';
+  b.classList.toggle('on', state.repView);
+}
+
 function renderStepNav(){
   const el = document.getElementById('stepNav');
   el.innerHTML = STEP_LABELS.map((l,i)=>{
     const n=i+1;
     const cls = n===state.step?'active':(n<state.step?'done':'');
-    return `<div class="${cls}">${n}. ${l}</div>`;
+    return `<div class="step ${cls}" title="${l}"></div>`;
   }).join('');
+  updateRepBtn();
+  const lbl = document.getElementById('pageLabel');
+  if(lbl) lbl.textContent = `Step ${state.step} of ${STEP_LABELS.length} · ${STEP_LABELS[state.step-1]}`;
 }
 
 function fieldNum(obj,key,label,unit,extra){
@@ -1280,11 +1385,11 @@ function splitFtIn(v){
 function fieldFtIn(obj,key,label){
   const {ft,inch} = splitFtIn(obj[key]);
   return `<div><label>${label} (ft-in)</label>
-    <div style="display:flex;gap:6px;align-items:center">
-      <input type="number" step="1" min="0" placeholder="ft" value="${ft}" data-bindft="${key}" style="flex:1">
-      <span class="note" style="margin:0">ft</span>
-      <input type="number" step="1" min="0" max="11" placeholder="in" value="${inch}" data-bindin="${key}" style="flex:1">
-      <span class="note" style="margin:0">in</span>
+    <div class="ftin">
+      <input type="number" step="1" min="0" placeholder="ft" value="${ft}" data-bindft="${key}">
+      <span class="note">ft</span>
+      <input type="number" step="1" min="0" max="11" placeholder="in" value="${inch}" data-bindin="${key}">
+      <span class="note">in</span>
     </div></div>`;
 }
 function fieldSelect(obj,key,label,opts){
@@ -1338,41 +1443,62 @@ function bindInputs(root, obj, onChange){
 }
 
 /* ---------- STEP 1 ---------- */
+// Project ID auto-fills from the project name + current year (same convention
+// as the Roofing Estimator: PropertyName-YYYY-001) until the user edits it.
+let projectIdDirty = false;
+const CURRENT_YEAR = new Date().getFullYear();
+function slugifyProjectName(str){ return (str||'').replace(/[^a-zA-Z0-9]+/g,'').substring(0,30); }
+function suggestProjectId(){
+  if(projectIdDirty) return;
+  const slug = slugifyProjectName(state.property);
+  state.projectId = slug ? `${slug}-${CURRENT_YEAR}-001` : '';
+  const el = document.getElementById('projectId'); if(el) el.value = state.projectId;
+}
 function renderStep1(){
   return `<div class="card">
     <h2>Project Info</h2>
+    <div><label>Community / Project Name</label><input type="text" id="property" data-bind="property" placeholder="e.g. Arbor Glen Condominiums" value="${esc(state.property)}"></div>
+    <div><label>Project ID</label><input type="text" id="projectId" data-bind="projectId" placeholder="e.g. ArborGlen-2026-001" value="${esc(state.projectId)}">
+      <div class="hint">Auto-filled from the project name + current year — edit if needed. Used as the SharePoint folder name.</div></div>
+    <div><label>Street Address</label><input type="text" data-bind="address" placeholder="Street address" value="${esc(state.address)}"></div>
     <div class="row">
-      <div><label>Project ID</label><input type="text" data-bind="projectId" value="${state.projectId}"></div>
-      <div><label>Property / Project Name</label><input type="text" data-bind="property" value="${state.property}"></div>
+      <div><label>City</label><input type="text" data-bind="city" placeholder="City" value="${esc(state.city)}"></div>
+      <div><label>State</label><input type="text" data-bind="st" placeholder="MA" maxlength="2" value="${esc(state.st)}"></div>
     </div>
+    <div><label>Number of Decks</label><input type="number" id="numDecks" min="1" step="1" value="${state.buildings.length}">
+      <div class="hint">Each deck gets its own measurements, structural check, and materials selection — priced and itemized separately, then combined into one job total.</div></div>
+    <div><label>Contact Name</label><input type="text" data-bind="contact" placeholder="e.g. John Smith" value="${esc(state.contact)}"></div>
     <div class="row">
-      <div><label>Contact</label><input type="text" data-bind="contact" value="${state.contact}"></div>
-      <div><label>Project Manager</label><input type="text" data-bind="pm" value="${state.pm}"></div>
+      <div><label>Phone</label><input type="tel" data-bind="phone" placeholder="(508) 555-0100" value="${esc(state.phone)}"></div>
+      <div><label>Email</label><input type="email" data-bind="email" placeholder="email@example.com" value="${esc(state.email)}"></div>
     </div>
-    <h3>Decks in this project</h3>
+    <div><label>Project Manager</label><input type="text" data-bind="pm" placeholder="PM initials or name" value="${esc(state.pm)}"></div>
+  </div>
+  <div class="card">
+    <h2>Decks in this project</h2>
     <div class="buildingTabs" id="bldgChips"></div>
-    <div class="btnrow">
-      <button class="btn ghost sm" id="addBldg">+ Add another deck</button>
-      <button class="btn ghost sm" id="removeBldg">Remove last deck</button>
-    </div>
-    <div class="note">Each deck gets its own measurements, structural check, and materials selection on the next steps.</div>
+    <div class="note">Tap a deck to make it the one you work on next. Change the count above to add or remove decks.</div>
   </div>`;
+}
+function setDeckCount(n){
+  n = Math.max(1, Math.min(30, Math.floor(n)||1));
+  while(state.buildings.length < n) state.buildings.push(newBuilding(state.buildings.length+1));
+  while(state.buildings.length > n) state.buildings.pop();
+  if(state.curBldg >= state.buildings.length) state.curBldg = state.buildings.length-1;
 }
 function wireStep1(){
   document.querySelectorAll('#app [data-bind]').forEach(el=>{
-    el.addEventListener('input', ()=>{ state[el.dataset.bind]=el.value; });
+    el.addEventListener('input', ()=>{
+      state[el.dataset.bind]=el.value;
+      if(el.dataset.bind==='property') suggestProjectId();
+      if(el.dataset.bind==='projectId') projectIdDirty = true;
+    });
   });
   const chips = document.getElementById('bldgChips');
-  chips.innerHTML = state.buildings.map((b,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${b.name}</button>`).join('');
+  chips.innerHTML = state.buildings.map((b,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${esc(b.name)}</button>`).join('');
   chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
-  document.getElementById('addBldg').addEventListener('click', ()=>{
-    state.buildings.push(newBuilding(state.buildings.length+1));
-    state.curBldg = state.buildings.length-1;
-    render();
-  });
-  document.getElementById('removeBldg').addEventListener('click', ()=>{
-    if(state.buildings.length>1){ state.buildings.pop(); if(state.curBldg>=state.buildings.length) state.curBldg=state.buildings.length-1; render(); }
-  });
+  const nd = document.getElementById('numDecks');
+  nd.addEventListener('change', ()=>{ setDeckCount(parseFloat(nd.value)); render(); });
 }
 
 /* ---------- STEP 2 ---------- */
@@ -1387,31 +1513,37 @@ function renderStep2(){
   const b = state.buildings[state.curBldg];
   const z = b.zones[b.curZone];
   const calc = calcBuilding(z);
-  const oddShapeNote = b.zones.length>1
-    ? `<div class="note">This deck has ${b.zones.length} framing zones — its materials/labor/PO will combine all of them into one deck.</div>`
-    : `<div class="note">Odd-shaped deck? Add another zone below to model each rectangular section separately (e.g. main deck + ell + bump-out) — DCA6 itself is checked per rectangular zone, not on the whole irregular outline.</div>`;
+  const odd = b.oddShape==='Y';
+  const oddShapeNote = `<div class="note">${odd
+    ? `Model each rectangular section as its own framing zone (e.g. main deck + ell + bump-out) — DCA6 is checked per rectangular zone, not on the whole irregular outline. This deck has ${b.zones.length} zone${b.zones.length===1?'':'s'}; all of them combine into one deck's materials, labor and PO.`
+    : `Leave as Rectangular for a standard deck — one set of framing inputs below.`}</div>`;
+  const zoneTitle = odd ? z.name : b.name;
   return `<div class="buildingTabs" id="bldgChips2"></div>
   <div class="card">
     <h2>${b.name} — Reference Sketch</h2>
     <input type="file" id="sketchInput" accept="image/*">
-    ${b.sketchImage?`<div class="note">Attached: ${b.sketchName} <button class="btn ghost sm" id="clearSketch" style="width:auto;display:inline-block;padding:3px 8px;margin-left:6px">Remove</button></div>
-    <img src="${b.sketchImage}" style="max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--border)">`:''}
+    ${b.sketchImage?`<div class="note">Attached: ${b.sketchName} <button class="btn sm" id="clearSketch" style="flex:none;padding:4px 10px;margin-left:6px">Remove</button></div>
+    <img src="${b.sketchImage}" class="sketch-img">`:''}
     <div class="note">Attach a photo or sketch of the deck layout for reference on the PO/proposal — it travels with the estimate but measurements below still need to be entered by zone.</div>
   </div>
   <div class="card">
-    <h2>${b.name} — Framing Zones</h2>
+    <h2>${b.name} — Deck Shape</h2>
+    <div><label>Non-rectangular deck?</label><div class="yn" id="oddShapeYN">
+      <button data-v="Y" class="${odd?'sel':''}">Yes</button>
+      <button data-v="N" class="${odd?'':'sel'}">No</button>
+    </div></div>
     ${oddShapeNote}
-    <div class="buildingTabs" id="zoneChips"></div>
+    ${odd ? `<div class="buildingTabs" id="zoneChips"></div>
     <div class="btnrow">
-      <button class="btn ghost sm" id="addZone">+ Add zone</button>
-      <button class="btn ghost sm" id="removeZone">Remove last zone</button>
-    </div>
+      <button class="btn sm" id="addZone">+ Add zone</button>
+      <button class="btn sm" id="removeZone">Remove last zone</button>
+    </div>` : ''}
   </div>
   <div class="card">
-    <h2>${z.name} — Framing Inputs</h2>
+    <h2>${esc(zoneTitle)} — Framing Inputs</h2>
     <div class="row">
-      <div><label>Deck name</label><input type="text" data-bind-b="name" value="${b.name}"></div>
-      <div><label>Zone name</label><input type="text" data-bind="name" value="${z.name}"></div>
+      <div><label>Deck name</label><input type="text" data-bind-b="name" value="${esc(b.name)}"></div>
+      ${odd ? `<div><label>Zone name</label><input type="text" data-bind="name" value="${esc(z.name)}"></div>` : ''}
     </div>
     <div class="row">
       ${fieldFtIn(z,'ledgerLen','Ledger length (along building)')}
@@ -1447,13 +1579,13 @@ function renderStep2(){
     ${fieldYN(z,'pictureFramed','Decking picture-framed?')}
     ${fieldYN(z,'pvcCladding','PVC perimeter cladding?')}
     ${fieldYN(z,'concreteLanding','Concrete landing at stairs?')}
-    ${fieldYN(z,'reuseFooting','Reuse existing footings? (removes new footing form, footing concrete & footings labor for beam/corner posts)')}
+    ${fieldSelect(z,'footingMode','Footings',[{v:'new',t:'New footings'},{v:'reuse',t:'Reuse existing footings (new posts on old footings)'},{v:'none',t:'None — attached to building (no posts or footings)'}])}
     ${fieldYN(z,'reuseFraming','Reuse existing framing? (removes new framing lumber, hangers, ties, ledger hardware & framing labor)')}
   </div>
   <div class="card">
-    <h2>Code Check — ${z.name} (AWC DCA6-2015, SYP No. 2)</h2>
+    <h2>Code Check — ${esc(zoneTitle)} (AWC DCA6-2015, SYP No. 2)</h2>
     ${renderChecks(calc)}
-    <div class="note" style="margin-top:8px">40 psf live / 10 psf dead, L/360, wet service. Overhang cannot exceed L/4. Verify against local code/AHJ before permitting.</div>
+    <div class="note">40 psf live / 10 psf dead, L/360, wet service. Overhang cannot exceed L/4. Verify against local code/AHJ before permitting.</div>
   </div>`;
 }
 function wireStep2(){
@@ -1467,17 +1599,28 @@ function wireStep2(){
   chips.innerHTML = state.buildings.map((bd,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${bd.name}</button>`).join('');
   chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
 
+  document.querySelectorAll('#oddShapeYN button').forEach(btn=>btn.addEventListener('click',()=>{
+    const v = btn.dataset.v;
+    if(v===b.oddShape) return;
+    if(v==='N' && b.zones.length>1){
+      if(!confirm(`Switching ${b.name} back to rectangular keeps only ${b.zones[0].name} and removes the other ${b.zones.length-1} zone(s). Continue?`)) return;
+      b.zones = [b.zones[0]]; b.curZone = 0;
+    }
+    b.oddShape = v; render();
+  }));
   const zchips = document.getElementById('zoneChips');
-  zchips.innerHTML = b.zones.map((zn,i)=>`<button data-i="${i}" class="${i===b.curZone?'sel':''}">${zn.name}</button>`).join('');
-  zchips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{b.curZone=+btn.dataset.i; render();}));
-  document.getElementById('addZone').addEventListener('click', ()=>{
-    b.zones.push(newZone(b.zones.length+1));
-    b.curZone = b.zones.length-1;
-    render();
-  });
-  document.getElementById('removeZone').addEventListener('click', ()=>{
-    if(b.zones.length>1){ b.zones.pop(); if(b.curZone>=b.zones.length) b.curZone=b.zones.length-1; render(); }
-  });
+  if(zchips){
+    zchips.innerHTML = b.zones.map((zn,i)=>`<button data-i="${i}" class="${i===b.curZone?'sel':''}">${esc(zn.name)}</button>`).join('');
+    zchips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{b.curZone=+btn.dataset.i; render();}));
+    document.getElementById('addZone').addEventListener('click', ()=>{
+      b.zones.push(newZone(b.zones.length+1));
+      b.curZone = b.zones.length-1;
+      render();
+    });
+    document.getElementById('removeZone').addEventListener('click', ()=>{
+      if(b.zones.length>1){ b.zones.pop(); if(b.curZone>=b.zones.length) b.curZone=b.zones.length-1; render(); }
+    });
+  }
 
   const sketchInput = document.getElementById('sketchInput');
   sketchInput.addEventListener('change', ()=>{
@@ -1557,18 +1700,34 @@ function renderStep3(){
     ` : ''}
   </div>
   <div class="card">
-    <h2>General Conditions <span class="pill">whole job</span></h2>
+    <h2>Job Schedule <span class="pill">whole job</span></h2>
+    <div><label>Estimated work days</label><input type="number" id="gc_days" min="0" step="0.5" placeholder="e.g. 5" value="${esc(state.gc.workDays)}">
+      <div class="hint">Crew days on site for the whole job. Project management is figured from this, and the dumpster is figured automatically from total deck area.</div></div>
+  </div>
+  ${state.repView ? repPricingCards() : ''}`;
+}
+function repPricingCards(){
+  const results = computeAll();
+  const eg = effectiveGC(results, state.gc);
+  return `<div class="repbanner">🔓 Rep-only pricing is showing — hide it (top right) before turning the screen toward the customer.</div>
+  <div class="card repcard">
+    <h2>General Conditions <span class="pill">rep only</span></h2>
+    <div class="note" id="gcInfo" style="margin-top:0"></div>
     <div class="row">
-      <div><label>Dumpster</label><input type="number" id="gc_dumpster" value="${state.gc.dumpster}"></div>
-      <div><label>Toilet</label><input type="number" id="gc_toilet" value="${state.gc.toilet}"></div>
+      <div><label>Dumpster override ($)</label><input type="number" id="gc_dumpsterOv" placeholder="auto" value="${esc(state.gc.dumpsterOverride)}"></div>
+      <div><label>Management override ($)</label><input type="number" id="gc_mgmtOv" placeholder="auto" value="${esc(state.gc.mgmtOverride)}"></div>
     </div>
     <div class="row">
-      <div><label>Permit</label><input type="number" id="gc_permit" value="${state.gc.permit}"></div>
-      <div><label>Management</label><input type="number" id="gc_management" value="${state.gc.management}"></div>
+      <div><label>Toilet ($)</label><input type="number" id="gc_toilet" value="${esc(state.gc.toilet)}"></div>
+      <div><label>Permit ($)</label><input type="number" id="gc_permit" value="${esc(state.gc.permit)}"></div>
+    </div>
+    <div class="row">
+      <div><label>Dumpster ($ per ${PRICE.gc.dumpsterSF} sf deck)</label><input type="number" id="gcr_dumpster" value="${PRICE.gc.dumpsterPer300SF}"></div>
+      <div><label>Management ($ per work day)</label><input type="number" id="gcr_mgmt" value="${PRICE.gc.mgmtPerDay}"></div>
     </div>
   </div>
-  <div class="card">
-    <h2>Labor Rates <span class="pill">whole job</span></h2>
+  <div class="card repcard">
+    <h2>Labor Rates <span class="pill">rep only</span></h2>
     <div class="row">
       <div><label>Framing ($/sf)</label><input type="number" id="lab_framing" value="${PRICE.labor.framingPerSF}"></div>
       <div><label>Decking ($/sf)</label><input type="number" id="lab_decking" value="${PRICE.labor.deckingPerSF}"></div>
@@ -1580,9 +1739,10 @@ function renderStep3(){
     <div class="row">
       <div><label>Landing ($/ea)</label><input type="number" id="lab_landing" value="${PRICE.labor.landingEa}"></div>
     </div>
+    <div class="note">Changing these here only affects this estimate. To change the standing defaults, update the labor rows in the shared pricing sheet.</div>
   </div>
-  <div class="card">
-    <h2>Margin</h2>
+  <div class="card repcard">
+    <h2>Margin <span class="pill">rep only</span></h2>
     <div class="row">
       <div><label>Target margin %</label><input type="number" id="marginPct" value="${state.marginPct}"></div>
       <div><label>Contingency %</label><input type="number" id="contingencyPct" value="${state.contingencyPct}"></div>
@@ -1591,17 +1751,26 @@ function renderStep3(){
     <input type="number" id="manualSell" value="${state.manualSell}">
   </div>`;
 }
+function refreshGcInfo(){
+  const el = document.getElementById('gcInfo'); if(!el) return;
+  const eg = effectiveGC(computeAll(), state.gc);
+  el.innerHTML = `Total deck area <b>${Math.round(eg.totalSF).toLocaleString()} sf</b> → dumpster <b>${money(eg.dumpsterAuto)}</b> (auto) · `+
+    `${eg.days||0} work day${eg.days===1?'':'s'} × ${money(PRICE.gc.mgmtPerDay)} → management <b>${money(eg.mgmtAuto)}</b> (auto). Overrides below replace the automatic amounts.`;
+}
 function wireStep3(){
   const b = state.buildings[state.curBldg];
   bindInputs(document.getElementById('app'), b, render);
   const chips = document.getElementById('bldgChips3');
   chips.innerHTML = state.buildings.map((bd,i)=>`<button data-i="${i}" class="${i===state.curBldg?'sel':''}">${bd.name}</button>`).join('');
   chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{state.curBldg=+btn.dataset.i; render();}));
-  const bindNum=(id,cb)=>{const el=document.getElementById(id); if(el) el.addEventListener('input',()=>cb(el.value));};
-  bindNum('gc_dumpster', v=>state.gc.dumpster=v);
+  const bindNum=(id,cb)=>{const el=document.getElementById(id); if(el) el.addEventListener('input',()=>{cb(el.value); refreshGcInfo(); updateLiveTotal();});};
+  bindNum('gc_days', v=>state.gc.workDays=v);
+  bindNum('gc_dumpsterOv', v=>state.gc.dumpsterOverride=v);
+  bindNum('gc_mgmtOv', v=>state.gc.mgmtOverride=v);
   bindNum('gc_toilet', v=>state.gc.toilet=v);
   bindNum('gc_permit', v=>state.gc.permit=v);
-  bindNum('gc_management', v=>state.gc.management=v);
+  bindNum('gcr_dumpster', v=>PRICE.gc.dumpsterPer300SF=parseFloat(v)||0);
+  bindNum('gcr_mgmt', v=>PRICE.gc.mgmtPerDay=parseFloat(v)||0);
   bindNum('lab_framing', v=>PRICE.labor.framingPerSF=parseFloat(v)||0);
   bindNum('lab_decking', v=>PRICE.labor.deckingPerSF=parseFloat(v)||0);
   bindNum('lab_stair', v=>PRICE.labor.stairCarpentryPerSF=parseFloat(v)||0);
@@ -1610,6 +1779,7 @@ function wireStep3(){
   bindNum('marginPct', v=>state.marginPct=v);
   bindNum('contingencyPct', v=>state.contingencyPct=v);
   bindNum('manualSell', v=>state.manualSell=v);
+  refreshGcInfo();
 }
 
 /* ---------- STEP 4 ---------- */
@@ -1618,23 +1788,36 @@ function money(v){ return '$'+ (Math.round((v||0)*100)/100).toLocaleString('en-U
 function renderStep4(){
   const results = computeAll();
   const job = aggregateJob(results, state.gc, state.marginPct, state.contingencyPct, state.manualSell);
-  let html = `<div class="card">
-    <h2>Job Summary</h2>
-    <div class="totline"><span>Materials (incl. tax)</span><span>${money(job.vendors)}</span></div>
-    <div class="totline"><span>Labor</span><span>${money(job.labor)}</span></div>
-    <div class="totline"><span>General Conditions</span><span>${money(job.general)}</span></div>
-    <div class="totline"><span>Contingency</span><span>${money(job.contingency)}</span></div>
-    <div class="totline"><span>COGS</span><span>${money(job.cogs)}</span></div>
-    <div class="totline"><span>Suggested price at ${state.marginPct}% margin</span><span>${money(job.priceAtMargin)}</span></div>
-    <div class="totline big"><span>Contract Price</span><span>${money(job.sell)}</span></div>
-    <div class="totline"><span>Profit</span><span>${money(job.profit)}</span></div>
-    <div class="totline"><span>Gross Margin</span><span>${(job.gm*100).toFixed(1)}%</span></div>
+  const nb = state.buildings.length;
+  let html = `<div class="sum-card">
+    <div class="sum-label">Contract Price</div>
+    <div class="sum-price">${money(job.sell)}</div>
+    <div class="sum-sub">${[nb>1?nb+' decks':'', state.repView?state.marginPct+'% margin target':''].filter(Boolean).join(' · ')}</div>
+    ${state.repView?`<hr class="sum-divider"/>
+    <div class="sum-row"><span>Materials (incl. tax)</span><span>${money(job.vendors)}</span></div>
+    <div class="sum-row"><span>Labor</span><span>${money(job.labor)}</span></div>
+    <div class="sum-row"><span>General Conditions</span><span>${money(job.general)}</span></div>
+    <div class="sum-row"><span>Contingency</span><span>${money(job.contingency)}</span></div>
+    <div class="sum-row bold"><span>COGS</span><span>${money(job.cogs)}</span></div>
+    <div class="sum-row"><span>Suggested price at ${state.marginPct}% margin</span><span>${money(job.priceAtMargin)}</span></div>
+    <div class="sum-row"><span>Profit</span><span class="acc">${money(job.profit)}</span></div>
+    <div class="sum-row"><span>Gross Margin</span><span class="acc">${(job.gm*100).toFixed(1)}%</span></div>`:''}
   </div>`;
   results.forEach((r,i)=>{
-    html += `<div class="acc" data-acc="${i}"><div class="acc-h"><span>${r.b.name}</span><span class="chev">▸</span></div><div class="acc-b">
-      ${r.b.sketchImage?`<img src="${r.b.sketchImage}" style="max-width:100%;border-radius:8px;margin:8px 0;border:1px solid var(--border)">`:''}
+    if(!state.repView){
+      // Customer-safe: scope of work only — no quantities, rates, costs or margin.
+      html += `<div class="card"><h2>${esc(r.b.name)} — Scope of Work</h2>
+        ${r.b.sketchImage?`<img src="${r.b.sketchImage}" class="sketch-img" style="margin:0 0 10px">`:''}
+        <ul class="scope-list">${scopeBullets(r).map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`;
+      return;
+    }
+    const deckTotal = r.mat.materialTotal + r.mat.laborTotal;
+    html += `<div class="card acc-card" data-acc="${i}">
+      <div class="acc-header"><span class="acc-chevron">▶</span><h2>${esc(r.b.name)}</h2><span class="acc-preview">${money(deckTotal)}</span></div>
+      <div class="acc-body">
+      ${r.b.sketchImage?`<img src="${r.b.sketchImage}" class="sketch-img">`:''}
       <h3>Framing &amp; Structural</h3>
-      ${r.zoneCalcs.map((zc,zi)=>`<div class="note" style="margin-top:6px;font-weight:600">${r.b.zones[zi].name}</div>${renderChecks(zc)}`).join('')}
+      ${r.zoneCalcs.map((zc,zi)=>`${r.zoneCalcs.length>1?`<div class="note" style="font-weight:600;color:#1a1a2e">${esc(r.b.zones[zi].name)}</div>`:''}${renderChecks(zc)}`).join('')}
       <h3>Materials</h3>
       <table class="matx"><thead><tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Ext</th></tr></thead><tbody>
         ${r.mat.lines.map(l=>`<tr><td>${l.label}</td><td class="num">${round1(l.qty)}</td><td>${l.unit}</td><td class="num">${money(l.rate)}</td><td class="num">${money(l.ext)}</td></tr>`).join('')}
@@ -1647,28 +1830,29 @@ function renderStep4(){
         ${r.mat.laborLines.map(l=>`<tr><td>${l.label}</td><td class="num">${round1(l.qty)}</td><td>${l.unit}</td><td class="num">${money(l.rate)}</td><td class="num">${money(l.ext)}</td></tr>`).join('')}
       </tbody></table>
       <div class="totline"><span>Labor total</span><span>${money(r.mat.laborTotal)}</span></div>
-    </div></div>`;
+      </div></div>`;
   });
-  html += `<div class="card">
+  html += state.repView ? `<div class="card">
     <h2>Export</h2>
-    <div class="btnrow">
-      <button class="btn primary" id="pdfCost">Cost Sheet PDF</button>
-      <button class="btn ghost" id="pdfProposal">Draft Proposal PDF</button>
-      <button class="btn ghost" id="pdfPO">Material Order PDF</button>
-    </div>
-    <div class="btnrow">
-      <button class="btn ghost" id="saveSp">Save Cost Sheet to SharePoint</button>
-    </div>
+    <button class="btn-tax" style="background:#e97132;color:#fff;margin-top:0" id="pdfCost">Cost Sheet PDF</button>
+    <button class="btn-tax" id="pdfProposal">Draft Proposal PDF</button>
+    <button class="btn-tax" id="pdfPO">Material Order PDF</button>
+    <button class="btn-back" style="width:100%;margin:0.625rem 0 0" id="saveSp">Save Cost Sheet to SharePoint</button>
     <div id="spStatus" class="note"></div>
+  </div>` : `<div class="card">
+    <h2>Export</h2>
+    <button class="btn-tax" style="background:#e97132;color:#fff;margin-top:0" id="pdfProposal">Draft Proposal PDF</button>
+    <div class="note">Internal exports are available in the rep-only view.</div>
   </div>`;
   return html;
 }
 function wireStep4(){
-  document.querySelectorAll('.acc-h').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));
-  document.getElementById('pdfCost').addEventListener('click', ()=>exportPDF('cost'));
-  document.getElementById('pdfProposal').addEventListener('click', ()=>exportPDF('proposal'));
-  document.getElementById('pdfPO').addEventListener('click', ()=>exportPDF('po'));
-  document.getElementById('saveSp').addEventListener('click', ()=>saveEstimateToSharePoint());
+  document.querySelectorAll('.acc-header').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));
+  const on=(id,fn)=>{const el=document.getElementById(id); if(el) el.addEventListener('click',fn);};
+  on('pdfCost', ()=>exportPDF('cost'));
+  on('pdfProposal', ()=>exportPDF('proposal'));
+  on('pdfPO', ()=>exportPDF('po'));
+  on('saveSp', ()=>saveEstimateToSharePoint());
 }
 
 /* ---------- PDF EXPORT ---------- */
@@ -1729,7 +1913,8 @@ function buildCostSheetDoc(){
 
   D.title("Kelly's Property Services — Deck Estimate: Internal Cost Sheet");
   D.kv('Project ID:', state.projectId||'—'); D.kv('Property:', state.property||'—');
-  D.kv('Contact:', state.contact||'—'); D.kv('PM:', state.pm||'—'); D.rule();
+  D.kv('Address:', [state.address,state.city,state.st].filter(Boolean).join(', ')||'—');
+  D.kv('Contact:', [state.contact,state.phone,state.email].filter(Boolean).join(' · ')||'—'); D.kv('PM:', state.pm||'—'); D.rule();
   results.forEach(r=>{
     D.h2(r.b.name);
     if(r.b.sketchImage){
@@ -1781,7 +1966,8 @@ function exportPDF(kind){
 
   if(kind==='proposal'){
     D.title("Kelly's Property Services — Deck Proposal");
-    D.kv('Property:', state.property||'—'); D.kv('Contact:', state.contact||'—'); D.rule();
+    D.kv('Property:', state.property||'—'); D.kv('Address:', [state.address,state.city,state.st].filter(Boolean).join(', ')||'—');
+    D.kv('Contact:', [state.contact,state.phone,state.email].filter(Boolean).join(' · ')||'—'); D.rule();
     D.h2('What\'s Included');
     results.forEach(r=>{
       D.line(r.b.name+':');
@@ -1819,6 +2005,88 @@ function exportPDF(kind){
   }
 }
 
+/* ---------- SAVE / OPEN PROJECT FILE ---------- */
+// Same idea as the Roofing Estimator's .kpsest.json: one file holding every
+// input (project info, each deck's zones/materials, GC, labor rates, margin)
+// so an estimate can be reopened and changed later. Older/partial files are
+// merged over fresh defaults so missing fields never break loading.
+function getSafeFileName(str){ return (str||'KPS-Deck-Estimate').replace(/[^a-zA-Z0-9._-]+/g,'_').replace(/^_+|_+$/g,'') || 'KPS-Deck-Estimate'; }
+
+function collectProjectState(){
+  return {
+    __kpsDeckSave: true,
+    format: 1,
+    savedAt: new Date().toISOString(),
+    project: {
+      projectId: state.projectId, property: state.property, address: state.address, city: state.city, st: state.st,
+      contact: state.contact, phone: state.phone, email: state.email, pm: state.pm,
+    },
+    buildings: JSON.parse(JSON.stringify(state.buildings)),
+    gc: Object.assign({}, state.gc),
+    labor: Object.assign({}, PRICE.labor),
+    gcRates: Object.assign({}, PRICE.gc),
+    pricing: { marginPct: state.marginPct, contingencyPct: state.contingencyPct, manualSell: state.manualSell },
+  };
+}
+
+function saveProjectFile(){
+  const data = collectProjectState();
+  const name = getSafeFileName(state.property || state.projectId || 'KPS-Deck-Estimate');
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}), `${name}_${getIsoDateStr()}.kpsdeck.json`);
+}
+
+function applyProjectState(data){
+  const p = data.project || {};
+  ['projectId','property','address','city','st','contact','phone','email','pm'].forEach(k=>{ if(p[k]!==undefined) state[k]=p[k]; });
+  projectIdDirty = !!state.projectId;
+  const saved = Array.isArray(data.buildings) && data.buildings.length ? data.buildings : [newBuilding(1)];
+  state.buildings = saved.map((sb,i)=>{
+    const b = Object.assign(newBuilding(i+1), sb);
+    const zs = Array.isArray(sb.zones) && sb.zones.length ? sb.zones : [{}];
+    b.zones = zs.map((sz,zi)=>{ const z = Object.assign(newZone(zi+1), sz); if(sz.footingMode===undefined && sz.reuseFooting==='Y') z.footingMode='reuse'; return z; });
+    b.curZone = 0;
+    if(sb.oddShape===undefined) b.oddShape = b.zones.length>1 ? 'Y' : 'N';
+    return b;
+  });
+  state.curBldg = 0;
+  if(data.gc){
+    const g = data.gc, ng = {workDays:'', dumpsterOverride:'', mgmtOverride:'', toilet:200, permit:0};
+    Object.assign(ng, g);
+    // Files saved before the automatic dumpster/management rules held plain dollar amounts — keep them as overrides so those jobs price the same.
+    if(g.dumpster!==undefined && g.dumpsterOverride===undefined) ng.dumpsterOverride = g.dumpster;
+    if(g.management!==undefined && g.management!==0 && g.mgmtOverride===undefined) ng.mgmtOverride = g.management;
+    delete ng.dumpster; delete ng.management;
+    state.gc = ng;
+  }
+  if(data.labor) Object.assign(PRICE.labor, data.labor);
+  if(data.gcRates) Object.assign(PRICE.gc, data.gcRates);
+  state.repView = false;
+  const pr = data.pricing || {};
+  if(pr.marginPct!==undefined) state.marginPct = pr.marginPct;
+  if(pr.contingencyPct!==undefined) state.contingencyPct = pr.contingencyPct;
+  if(pr.manualSell!==undefined) state.manualSell = pr.manualSell;
+  state.step = 1;
+}
+
+function handleOpenFileSelected(evt){
+  const file = evt.target.files && evt.target.files[0];
+  evt.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || !data.__kpsDeckSave) throw new Error('not a deck estimate');
+      applyProjectState(data);
+      render();
+      window.scrollTo(0,0);
+    }catch(e){
+      alert("That file isn't a KPS Deck Estimator save (.kpsdeck.json). Roofing estimates (.kpsest.json) open in the Roofing Estimator.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 /* ---------- MAIN RENDER / NAV ---------- */
 function render(){
   renderStepNav();
@@ -1828,17 +2096,27 @@ function render(){
   else if(state.step===2) body = renderStep2();
   else if(state.step===3) body = renderStep3();
   else body = renderStep4();
-  body += `<div class="btnrow">
-    ${state.step>1?'<button class="btn ghost" id="navBack">← Back</button>':'<div style="flex:1"></div>'}
-    ${state.step<4?'<button class="btn primary" id="navNext">Next →</button>':'<div style="flex:1"></div>'}
-  </div>`;
+  const nb = state.buildings.length;
+  let nextLabel='', backLabel='', nextFn=null, backFn=null;
+  if(state.step===1){ nextLabel='Next: Deck Measurements →'; nextFn=()=>{ state.step=2; state.curBldg=0; }; }
+  else if(state.step===2){
+    const i=state.curBldg;
+    nextLabel = i<nb-1 ? `Next Deck: ${esc(state.buildings[i+1].name)} →` : 'Next: Materials & Options →';
+    nextFn = ()=>{ if(i<nb-1) state.curBldg=i+1; else { state.step=3; state.curBldg=0; } };
+    backLabel = i>0 ? `← Previous Deck` : '← Back';
+    backFn = ()=>{ if(i>0) state.curBldg=i-1; else state.step=1; };
+  }
+  else if(state.step===3){ nextLabel='Next: Summary →'; nextFn=()=>{ state.step=4; }; backLabel='← Back'; backFn=()=>{ state.step=2; state.curBldg=nb-1; }; }
+  else { backLabel='← Back'; backFn=()=>{ state.step=3; state.curBldg=0; }; }
+  if(nextLabel) body += `<button class="btn-main" id="navNext">${nextLabel}</button>`;
+  if(backLabel) body += `<button class="btn-back" id="navBack">${backLabel}</button>`;
   app.innerHTML = body;
   if(state.step===1) wireStep1();
   else if(state.step===2) wireStep2();
   else if(state.step===3) wireStep3();
   else wireStep4();
-  const back=document.getElementById('navBack'); if(back) back.addEventListener('click',()=>{state.step--; render();});
-  const next=document.getElementById('navNext'); if(next) next.addEventListener('click',()=>{state.step++; render();});
+  const back=document.getElementById('navBack'); if(back) back.addEventListener('click',()=>{backFn(); render(); window.scrollTo(0,0);});
+  const next=document.getElementById('navNext'); if(next) next.addEventListener('click',()=>{nextFn(); render(); window.scrollTo(0,0);});
   updateLiveTotal();
 }
 
@@ -1865,8 +2143,9 @@ function updateLiveTotal(){
   }
   price.textContent = money(job.sell);
   const nb = state.buildings.length;
-  if(sub) sub.textContent = `${nb} deck${nb===1?'':'s'} · ${state.marginPct}% margin`;
+  if(sub) sub.textContent = `${nb} deck${nb===1?'':'s'}` + (state.repView ? ` · ${state.marginPct}% margin` : '');
   if(!rows) return;
+  if(!state.repView){ rows.innerHTML=''; return; }
   const line = (k,v)=>`<div class="lt-row"><span>${k}</span><b>${v}</b></div>`;
   rows.innerHTML =
       line('Materials', money(job.vendors))
@@ -1879,3 +2158,6 @@ function updateLiveTotal(){
 render();
 initKPSPricing();
 </script>
+
+</body>
+</html>
