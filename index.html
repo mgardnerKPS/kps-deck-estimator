@@ -1006,7 +1006,7 @@ function buildDeckPricingFromRows(rawRows) {
     const key = r.ItemKey, title = r.Title;
     const cost = Number(r.UnitCost), cost2 = Number(r.SecondaryCost);
     switch (r.Category) {
-      case 'Material': case 'Labor': case 'Tax':
+      case 'Material': case 'Hardware': case 'Labor': case 'Tax':
         if (!isNaN(cost)) flat[key] = cost;
         break;
       case 'Decking': {
@@ -1082,7 +1082,7 @@ function applyDeckPricing(built) {
     drinkRailBoardPrice: f['ptrail_drinkRailBoardPrice'] !== undefined ? f['ptrail_drinkRailBoardPrice'] : DEFAULT_PRICE.ptRail.drinkRailBoardPrice,
     drinkRailBoardLen: DEFAULT_PRICE.ptRail.drinkRailBoardLen,
   };
-  PRICE.salesTaxRate = f['salesTaxRate'] !== undefined ? f['salesTaxRate'] : DEFAULT_PRICE.salesTaxRate;
+  PRICE.salesTaxRate = f['salesTaxRate'] !== undefined ? f['salesTaxRate'] : (f['taxRate'] !== undefined ? f['taxRate'] : DEFAULT_PRICE.salesTaxRate);
 
   // Decking / railing product catalogs: merge fetched entries over the coded
   // defaults per-product (so a sheet row that only updates one length or one
